@@ -24,3 +24,7 @@ export * from './testDoubles/Libxdf/FakeLibxdf.js'
 
 export { default as SpyLibxdf } from './testDoubles/Libxdf/SpyLibxdf.js'
 export * from './testDoubles/Libxdf/SpyLibxdf.js'
+
+// consts
+
+export * from './consts.js'
