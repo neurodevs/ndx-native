@@ -21,7 +21,7 @@ import {
     ResolveByPropOptions,
 } from 'impl/LiblslAdapter.js'
 import LiblslAdapter from '../../impl/LiblslAdapter.js'
-import FakeLiblsl from '../../testDoubles/Libxdf/Liblsl/FakeLiblsl.js'
+import FakeLiblsl from '../../testDoubles/Liblsl/FakeLiblsl.js'
 import AbstractPackageTest from '../AbstractPackageTest.js'
 
 export default class LiblslAdapterTest extends AbstractPackageTest {
