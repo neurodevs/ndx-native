@@ -25,6 +25,11 @@ export * from './testDoubles/Libxdf/FakeLibxdf.js'
 export { default as SpyLibxdf } from './testDoubles/Libxdf/SpyLibxdf.js'
 export * from './testDoubles/Libxdf/SpyLibxdf.js'
 
+// handleError
+
+export { default as handleError } from './lib/handleError.js'
+export * from './lib/handleError.js'
+
 // consts
 
 export * from './consts.js'
