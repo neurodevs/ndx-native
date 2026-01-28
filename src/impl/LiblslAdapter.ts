@@ -119,7 +119,7 @@ export default class LiblslAdapter implements Liblsl {
         this.bindings.lsl_destroy_streaminfo([infoHandle])
     }
 
-    public async resolveByProp(options: ResolveByPropOptions) {
+    public resolveByProp(options: ResolveByPropOptions) {
         const { prop, value, minResults = 1, timeoutMs = 1000 } = options
 
         const maxResults = 1024
@@ -134,7 +134,7 @@ export default class LiblslAdapter implements Liblsl {
             })
         )[0]
 
-        const numResults = await this.load({
+        const numResults = this.load({
             library: 'lsl',
             funcName: 'lsl_resolve_byprop',
             retType: DataType.I32,
@@ -154,7 +154,6 @@ export default class LiblslAdapter implements Liblsl {
                 minResults,
                 timeoutMs / 1000,
             ],
-            runInNewThread: true,
         })
 
         const handles: InfoHandle[] = []
@@ -233,16 +232,15 @@ export default class LiblslAdapter implements Liblsl {
         return this.bindings.lsl_get_channel_count([infoHandle])
     }
 
-    public async openStream(options: OpenStreamOptions) {
+    public openStream(options: OpenStreamOptions) {
         const { inletHandle, timeoutMs, errorCodePtr } = options
 
-        await this.load({
+        this.load({
             library: 'lsl',
             funcName: 'lsl_open_stream',
             retType: DataType.Void,
             paramsType: [DataType.External, DataType.Double, DataType.External],
             paramsValue: [inletHandle, timeoutMs / 1000, errorCodePtr],
-            runInNewThread: true,
         })
     }
 
@@ -462,7 +460,7 @@ export interface Liblsl {
     appendChannelsToStreamInfo(options: AppendChannelsToStreamInfoOptions): void
     getChannelCount(options: GetChannelCountOptions): number
 
-    resolveByProp(options: ResolveByPropOptions): Promise<InfoHandle[]>
+    resolveByProp(options: ResolveByPropOptions): InfoHandle[]
 
     createOutlet(options: CreateOutletOptions): OutletHandle
 
@@ -477,7 +475,7 @@ export interface Liblsl {
     destroyOutlet(options: DestroyOutletOptions): void
 
     createInlet(options: CreateInletOptions): InletHandle
-    openStream(options: OpenStreamOptions): Promise<void>
+    openStream(options: OpenStreamOptions): void
     closeStream(options: CloseStreamOptions): void
     pullSample(options: PullSampleOptions): number
     pullChunk(options: PullChunkOptions): number

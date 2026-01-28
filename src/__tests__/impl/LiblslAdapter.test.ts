@@ -306,7 +306,6 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
                     this.minResults,
                     this.timeoutMs / 1000,
                 ],
-                runInNewThread: true,
             },
             'Did not call resolveByProp with expected params!'
         )
@@ -570,7 +569,6 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
                     DataType.External,
                 ],
                 paramsValue: [inletHandle, timeoutMs / 1000, errorCodePtr],
-                runInNewThread: true,
             },
             'Did not call openStream with expected options!'
         )

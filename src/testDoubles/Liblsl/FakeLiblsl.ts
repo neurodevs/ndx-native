@@ -102,7 +102,7 @@ export default class FakeLiblsl implements Liblsl {
         this.lastDestroyStreamInfoOptions = options
     }
 
-    public async resolveByProp(options: ResolveByPropOptions) {
+    public resolveByProp(options: ResolveByPropOptions) {
         this.lastResolveByPropOptions = options
         return FakeLiblsl.fakeInfoHandles
     }
@@ -137,11 +137,11 @@ export default class FakeLiblsl implements Liblsl {
         return {} as InletHandle
     }
 
-    public async openStream(options: OpenStreamOptions) {
+    public openStream(options: OpenStreamOptions) {
         this.lastOpenStreamOptions = options
     }
 
-    public async closeStream(options: CloseStreamOptions) {
+    public closeStream(options: CloseStreamOptions) {
         this.lastCloseStreamOptions = options
     }
 
