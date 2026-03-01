@@ -796,7 +796,7 @@
   resolved "https://registry.yarnpkg.com/@sprucelabs/error/-/error-7.1.42.tgz#a95035d84b5f9b660b8cc0b43dc1414f487d1534"
   integrity sha512-tEBklby9qzuqotUDWI9oHefopLVKZDw5FSlrzXUDeb9fZvDPhCvingln/gajqomwqVLoxe3knlRheDPPGnHZhA==
 
-"@sprucelabs/globby@^2.0.507", "@sprucelabs/globby@^2.0.515":
+"@sprucelabs/globby@^2.0.507":
   version "2.0.515"
   resolved "https://registry.yarnpkg.com/@sprucelabs/globby/-/globby-2.0.515.tgz#6320e97d39460235619bd1e319f9fdcf45fb3cf2"
   integrity sha512-noOwcXmflkKkpDcRN/v8EVP0rdbl1Ka6NqbGR20I9LYSQdEUb3sPMC8ThR3WwSQcDv4j9ZvfOUt+9L7MVEajog==
@@ -814,16 +814,6 @@
   integrity sha512-FsJG4dMXwN/RrBHeh/qboQOoN2LALhQmITl/eEChvFh9JnXPi88i/5UP6K4KgEyfuKZaLittRqH/ASuNZy88FQ==
   dependencies:
     "@sprucelabs/globby" "^2.0.507"
-    chalk "^4.1.2"
-    tsconfig-paths "^4.2.0"
-    yargs "^18.0.0"
-
-"@sprucelabs/resolve-path-aliases@^4.0.15":
-  version "4.0.15"
-  resolved "https://registry.yarnpkg.com/@sprucelabs/resolve-path-aliases/-/resolve-path-aliases-4.0.15.tgz#43bc3532d5a631d4ddd0b9378242b466711873b4"
-  integrity sha512-oAUl6w+0AS6dqnTPUXnawKU93nulravt24YOKH8rcY0WYRgDmRBEgP8Mjwct6g2u5cg/Q1umY5ZaOHq4oNZ4aQ==
-  dependencies:
-    "@sprucelabs/globby" "^2.0.515"
     chalk "^4.1.2"
     tsconfig-paths "^4.2.0"
     yargs "^18.0.0"

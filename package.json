@@ -44,7 +44,6 @@
     "@neurodevs/generate-id": "^1.1.2",
     "@neurodevs/node-tdd": "^0.2.5",
     "@neurodevs/prettier-config-ndx": "^1.0.1",
-    "@sprucelabs/resolve-path-aliases": "^4.0.15",
     "jest": "^30.2.0",
     "jest-circus": "^30.2.0",
     "prettier": "^3.8.1",
