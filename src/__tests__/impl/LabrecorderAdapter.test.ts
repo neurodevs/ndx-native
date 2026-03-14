@@ -44,10 +44,14 @@ export default class LabrecorderAdapterTest extends AbstractPackageTest {
 
     @test()
     protected static async callsFfiRsOpenWithRequiredOptions() {
-        assert.isEqualDeep(this.ffiRsOpenOptions, {
-            library: 'labrecorder',
-            path: this.labrecorderPath,
-        })
+        assert.isEqualDeep(
+            this.ffiRsOpenOptions,
+            {
+                library: 'labrecorder',
+                path: this.labrecorderPath,
+            },
+            'Did not pass valid options to ffiRsOpen!'
+        )
     }
 
     @test()
