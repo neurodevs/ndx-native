@@ -38,8 +38,8 @@ export default class LabrecorderAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async canCreateLabrecorderAdapter() {
-        assert.isTruthy(this.instance, 'Should create an instance!')
+    protected static async createsInstance() {
+        assert.isTruthy(this.instance, 'Failed to create instance!')
     }
 
     @test()
@@ -81,7 +81,7 @@ export default class LabrecorderAdapterTest extends AbstractPackageTest {
                     ],
                 },
             },
-            'Please pass valid options to ffiRsDefine!'
+            'Did not pass valid options to ffiRsDefine!'
         )
     }
 
@@ -96,7 +96,7 @@ export default class LabrecorderAdapterTest extends AbstractPackageTest {
                 watchFor: this.watchFor,
                 watchForCount: this.watchFor.length,
             },
-            'Should create a recording!'
+            'Did not create a recording!'
         )
     }
 
@@ -107,7 +107,11 @@ export default class LabrecorderAdapterTest extends AbstractPackageTest {
 
         const { path } = this.ffiRsOpenOptions ?? {}
 
-        assert.isEqual(path, defaultLabrecorderPath)
+        assert.isEqual(
+            path,
+            defaultLabrecorderPath,
+            'Did not use default macOS path!'
+        )
     }
 
     @test()
@@ -115,14 +119,22 @@ export default class LabrecorderAdapterTest extends AbstractPackageTest {
         const recording = this.createRecording()
         this.stopRecording(recording)
 
-        assert.isEqualDeep(this.callsToRecordingStop[0], recording)
+        assert.isEqualDeep(
+            this.callsToRecordingStop[0],
+            recording,
+            'Did not stop recording!'
+        )
     }
 
     @test()
     protected static async deleteRecordingCallsBindings() {
         const recording = this.createAndDeleteRecording()
 
-        assert.isEqualDeep(this.callsToRecordingDelete[0], recording)
+        assert.isEqualDeep(
+            this.callsToRecordingDelete[0],
+            recording,
+            'Did not delete recording!'
+        )
     }
 
     private static createAndDeleteRecording() {
