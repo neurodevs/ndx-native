@@ -241,7 +241,6 @@ export default class LibxdfTest extends AbstractPackageTest {
     private static readonly fakeNominalSampleRate = 0
     private static readonly fakeEventName = generateId()
     private static readonly fakeEventTimestamp = 0
-    private static readonly fakeErrorMessage = 'Fake error message!'
 
     private static fakeSerializedXdf = `{"streams": [{"stream_id": ${this.fakeStreamId}, "time_series": [], "time_stamps": [], "stream_info": {"channel_count": ${this.fakeChannelCount}, "channel_format": "${this.fakeChannelFormat}", "nominal_srate": ${this.fakeNominalSampleRate}, "stream_name": "${this.fakeStreamName}", "stream_type": "${this.fakeStreamType}"}}], "events": [{"stream_id": ${this.fakeStreamId}, "event_name": "${this.fakeEventName}", "event_timestamp": ${this.fakeEventTimestamp}}]}`
 
