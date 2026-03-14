@@ -14,6 +14,14 @@ export * from './impl/LiblslAdapter.js'
 export { default as FakeLiblsl } from './testDoubles/Liblsl/FakeLiblsl.js'
 export * from './testDoubles/Liblsl/FakeLiblsl.js'
 
+// Libndx
+
+export { default as LibndxAdapter } from './impl/LibndxAdapter.js'
+export * from './impl/LibndxAdapter.js'
+
+export { default as FakeLibndx } from './testDoubles/Libndx/FakeLibndx.js'
+export * from './testDoubles/Libndx/FakeLibndx.js'
+
 // Libxdf
 
 export { default as LibxdfAdapter } from './impl/LibxdfAdapter.js'
