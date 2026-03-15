@@ -30,19 +30,17 @@ export default class LibndxAdapter implements Libndx {
         throw new Error(
             `
             \n -----------------------------------
-            \n Failed to load libxdf! Tried to load from: 
+            \n Failed to load libndx! Tried to load from: 
             \n     ${this.libndxPath}
             \n Instructions to save your day (on MacOS):
-            \n     1. git clone https://github.com/neurodevs/libxdf.git
-            \n     2. cd libxdf && cmake -S . -B build && cmake --build build
-            \n     3. sudo cp build/libxdf.dylib /opt/local/lib/
+            \n     1. git clone https://github.com/neurodevs/libndx.git
+            \n     2. cd libndx && cmake -S . -B build && cmake --build build
+            \n     3. sudo cp build/libndx.dylib /opt/local/lib/
             \n     4. Try whatever you were doing again!
             \n Modify step 3 for your OS if you are not on MacOS.
-            \n Check the official repo for OS-specific instructions:
-            \n     https://github.com/xdf-modules/libxdf
             \n If you're still unsure, ask an LLM with this error and your OS. 
             \n You could also post an issue on the repo:
-            \n     https://github.com/neurodevs/node-xdf/issues
+            \n     https://github.com/neurodevs/ndx-native/issues
             \n Good luck!
             \n @ericthecurious
             \n -----------------------------------
