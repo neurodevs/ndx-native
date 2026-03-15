@@ -1,4 +1,4 @@
-import { define, open } from 'ffi-rs'
+import { DataType, define, open } from 'ffi-rs'
 
 export default class LibndxAdapter implements Libndx {
     public static Class?: LibndxConstructor
@@ -36,7 +36,33 @@ export default class LibndxAdapter implements Libndx {
     }
 
     private defineBindings() {
-        this.ffiRsDefine({})
+        this.ffiRsDefine({
+            createBleBackend: {
+                library: 'ndx',
+                retType: DataType.String,
+                paramsType: [DataType.String],
+            },
+            startBleBackend: {
+                library: 'ndx',
+                retType: DataType.Void,
+                paramsType: [DataType.String],
+            },
+            stopBleBackend: {
+                library: 'ndx',
+                retType: DataType.Void,
+                paramsType: [DataType.String],
+            },
+            startFtdiBackend: {
+                library: 'ndx',
+                retType: DataType.Void,
+                paramsType: [DataType.String],
+            },
+            stopFtdiBackend: {
+                library: 'ndx',
+                retType: DataType.Void,
+                paramsType: [DataType.String],
+            },
+        })
     }
 
     private throwFailedToLoadLiblsl(err: Error) {

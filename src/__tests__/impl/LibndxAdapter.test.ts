@@ -2,7 +2,7 @@ import { test, assert } from '@neurodevs/node-tdd'
 
 import LibndxAdapter, { Libndx } from '../../impl/LibndxAdapter.js'
 import AbstractPackageTest from '../AbstractPackageTest.js'
-import { define, OpenParams } from 'ffi-rs'
+import { DataType, define, OpenParams } from 'ffi-rs'
 import { LibxdfBindings } from '../../impl/LibxdfAdapter.js'
 import { FfiRsDefineOptions } from '../../types.js'
 
@@ -56,6 +56,41 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
     }
 
+    @test()
+    protected static async callsFfiRsDefineWithRequiredOptions() {
+        assert.isEqualDeep(
+            this.ffiRsDefineOptions,
+            {
+                createBleBackend: {
+                    library: 'ndx',
+                    retType: DataType.String,
+                    paramsType: [DataType.String],
+                },
+                startBleBackend: {
+                    library: 'ndx',
+                    retType: DataType.Void,
+                    paramsType: [DataType.String],
+                },
+                stopBleBackend: {
+                    library: 'ndx',
+                    retType: DataType.Void,
+                    paramsType: [DataType.String],
+                },
+                startFtdiBackend: {
+                    library: 'ndx',
+                    retType: DataType.Void,
+                    paramsType: [DataType.String],
+                },
+                stopFtdiBackend: {
+                    library: 'ndx',
+                    retType: DataType.Void,
+                    paramsType: [DataType.String],
+                },
+            },
+            'Did not pass valid options to ffiRsDefine!'
+        )
+    }
+
     private static clearAndFakeFfi() {
         delete this.ffiRsOpenOptions
         delete this.ffiRsDefineOptions
@@ -70,12 +105,12 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     private static fakeFfiRsDefine() {
-        LibndxAdapter.ffiRsDefine = ((_options) => {
+        LibndxAdapter.ffiRsDefine = ((options) => {
+            this.ffiRsDefineOptions = options
+
             if (this.shouldThrowWhenLoadingBindings) {
                 throw new Error(this.fakeErrorMessage)
             }
-
-            this.ffiRsDefine = define
 
             return this.fakeBindings as any
         }) as typeof define

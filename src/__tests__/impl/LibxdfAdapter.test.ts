@@ -44,8 +44,8 @@ export default class LibxdfTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static canCreateInstance() {
-        assert.isTruthy(this.instance, 'Should create an instance!')
+    protected static createsInstance() {
+        assert.isTruthy(this.instance, 'Failed to create instance!')
     }
 
     @test()
@@ -90,7 +90,7 @@ export default class LibxdfTest extends AbstractPackageTest {
                     paramsType: [DataType.String],
                 },
             },
-            'Please pass valid options to ffiRsDefine!'
+            'Did not pass valid options to ffiRsDefine!'
         )
     }
 
@@ -101,7 +101,7 @@ export default class LibxdfTest extends AbstractPackageTest {
         assert.isEqualDeep(
             this.loadXdfCalls[0],
             [this.path],
-            'Should have called load_xdf_to_json(path)!'
+            'Did not call load_xdf_to_json(path)!'
         )
     }
 
