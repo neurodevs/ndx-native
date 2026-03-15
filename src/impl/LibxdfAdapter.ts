@@ -3,7 +3,7 @@ import {
     MangledNameExtractor,
     MangledNameMap,
 } from '@neurodevs/node-mangled-names'
-import { DataType, define, FieldType, FuncObj, open } from 'ffi-rs'
+import { DataType, define, open } from 'ffi-rs'
 
 export default class LibxdfAdapter implements Libxdf {
     public static Class?: LibxdfConstructor
@@ -37,19 +37,15 @@ export default class LibxdfAdapter implements Libxdf {
 
     private tryToLoadBindings() {
         try {
-            this.bindings = this.loadBindings()
+            this.openLibxdf()
+            this.bindings = this.defineBindings()
         } catch (err: unknown) {
             this.throwFailedToLoadLiblsl(err)
         }
     }
 
-    private loadBindings() {
-        this.openLibxdf()
-        return this.defineBindings()
-    }
-
     private openLibxdf() {
-        LibxdfAdapter.ffiRsOpen({
+        this.ffiRsOpen({
             library: 'xdf',
             path: this.libxdfPath,
         })
@@ -68,7 +64,7 @@ export default class LibxdfAdapter implements Libxdf {
             return acc
         }, {})
 
-        return LibxdfAdapter.ffiRsDefine(funcs)
+        return this.ffiRsDefine(funcs)
     }
 
     private throwFailedToLoadLiblsl(err: unknown) {
@@ -126,6 +122,14 @@ export default class LibxdfAdapter implements Libxdf {
         return LibxdfAdapter.loadXdfName
     }
 
+    private get ffiRsOpen() {
+        return LibxdfAdapter.ffiRsOpen
+    }
+
+    private get ffiRsDefine() {
+        return LibxdfAdapter.ffiRsDefine
+    }
+
     private static generateFailedMessage(libxdfPath: string) {
         return `
 			\n -----------------------------------
@@ -170,12 +174,6 @@ export type LibxdfConstructor = new (
 export type LibxdfBindings = Record<string, (path: string[]) => string>
 
 export type LibxdfStatusCode = 0 | Exclude<number, 0>
-
-export type FfiRsDefineOptions = FuncObj<
-    FieldType,
-    boolean | undefined,
-    boolean | undefined
->
 
 export interface XdfFile {
     path: string

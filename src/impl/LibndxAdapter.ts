@@ -1,7 +1,8 @@
-import { define } from 'ffi-rs'
+import { define, open } from 'ffi-rs'
 
 export default class LibndxAdapter implements Libndx {
     public static Class?: LibndxConstructor
+    public static ffiRsOpen = open
     public static ffiRsDefine = define
 
     private libndxPath: string
@@ -20,10 +21,22 @@ export default class LibndxAdapter implements Libndx {
 
     private tryToLoadBindings() {
         try {
-            this.ffiRsDefine({})
+            this.openLibndx()
+            this.defineBindings()
         } catch (err: unknown) {
             this.throwFailedToLoadLiblsl(err as Error)
         }
+    }
+
+    private openLibndx() {
+        this.ffiRsOpen({
+            library: 'ndx',
+            path: this.libndxPath,
+        })
+    }
+
+    private defineBindings() {
+        this.ffiRsDefine({})
     }
 
     private throwFailedToLoadLiblsl(err: Error) {
@@ -48,6 +61,10 @@ export default class LibndxAdapter implements Libndx {
             \n
         `.replace(/\s+/g, '')
         )
+    }
+
+    private get ffiRsOpen() {
+        return LibndxAdapter.ffiRsOpen
     }
 
     private get ffiRsDefine() {

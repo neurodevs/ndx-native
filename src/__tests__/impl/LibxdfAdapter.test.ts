@@ -7,10 +7,10 @@ import { test, assert } from '@neurodevs/node-tdd'
 import { DataType, OpenParams } from 'ffi-rs'
 
 import LibxdfAdapter, {
-    FfiRsDefineOptions,
     LibxdfBindings,
     XdfFile,
 } from '../../impl/LibxdfAdapter.js'
+import { FfiRsDefineOptions } from 'types.js'
 import SpyLibxdf from '../../testDoubles/Libxdf/SpyLibxdf.js'
 import AbstractPackageTest from '../AbstractPackageTest.js'
 

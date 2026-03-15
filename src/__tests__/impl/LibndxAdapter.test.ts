@@ -2,8 +2,9 @@ import { test, assert } from '@neurodevs/node-tdd'
 
 import LibndxAdapter, { Libndx } from '../../impl/LibndxAdapter.js'
 import AbstractPackageTest from '../AbstractPackageTest.js'
-import { define } from 'ffi-rs'
+import { define, OpenParams } from 'ffi-rs'
 import { LibxdfBindings } from '../../impl/LibxdfAdapter.js'
+import { FfiRsDefineOptions } from '../../types.js'
 
 export default class LibndxAdapterTest extends AbstractPackageTest {
     public static ffiRsDefine = define
@@ -13,11 +14,14 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static shouldThrowWhenLoadingBindings: boolean
     private static fakeBindings: LibxdfBindings
 
+    private static ffiRsOpenOptions?: OpenParams
+    private static ffiRsDefineOptions?: FfiRsDefineOptions
+
     protected static async beforeEach() {
         await super.beforeEach()
 
         this.shouldThrowWhenLoadingBindings = false
-        this.fakeFfiRsDefine()
+        this.clearAndFakeFfi()
 
         this.instance = this.LibndxAdapter()
     }
@@ -42,6 +46,27 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
             this.failedToLoadError,
             'Did not receive the expected error!'
         )
+    }
+
+    @test()
+    protected static async callsFfiRsOpenWithRequiredOptions() {
+        assert.isEqualDeep(this.ffiRsOpenOptions, {
+            library: 'ndx',
+            path: this.libndxPath,
+        })
+    }
+
+    private static clearAndFakeFfi() {
+        delete this.ffiRsOpenOptions
+        delete this.ffiRsDefineOptions
+        this.fakeFfiRsOpen()
+        this.fakeFfiRsDefine()
+    }
+
+    private static fakeFfiRsOpen() {
+        LibndxAdapter.ffiRsOpen = (options) => {
+            this.ffiRsOpenOptions = options
+        }
     }
 
     private static fakeFfiRsDefine() {
