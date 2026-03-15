@@ -68,22 +68,37 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 },
                 startBleBackend: {
                     library: 'ndx',
-                    retType: DataType.Void,
+                    retType: DataType.String,
                     paramsType: [DataType.String],
                 },
                 stopBleBackend: {
                     library: 'ndx',
-                    retType: DataType.Void,
+                    retType: DataType.String,
+                    paramsType: [DataType.String],
+                },
+                destroyBleBackend: {
+                    library: 'ndx',
+                    retType: DataType.String,
+                    paramsType: [DataType.String],
+                },
+                createFtdiBackend: {
+                    library: 'ndx',
+                    retType: DataType.String,
                     paramsType: [DataType.String],
                 },
                 startFtdiBackend: {
                     library: 'ndx',
-                    retType: DataType.Void,
+                    retType: DataType.String,
                     paramsType: [DataType.String],
                 },
                 stopFtdiBackend: {
                     library: 'ndx',
-                    retType: DataType.Void,
+                    retType: DataType.String,
+                    paramsType: [DataType.String],
+                },
+                destroyFtdiBackend: {
+                    library: 'ndx',
+                    retType: DataType.String,
                     paramsType: [DataType.String],
                 },
             },
