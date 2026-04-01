@@ -23,6 +23,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         this.shouldThrowWhenLoadingBindings = false
         this.clearAndFakeFfi()
 
+        this.resetInstance()
         this.instance = this.LibndxAdapter()
     }
 
@@ -33,12 +34,10 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
 
     @test()
     protected static async throwsWhenBindingsFailToLoad() {
+        this.resetInstance()
         this.shouldThrowWhenLoadingBindings = true
 
-        const err = await assert.doesThrowAsync(async () =>
-            this.LibndxAdapter()
-        )
-
+        const err = assert.doesThrow(() => this.LibndxAdapter())
         const actual = (err.message ?? err.stack).replace(/\s+/g, '')
 
         assert.isEqual(
@@ -106,6 +105,11 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         )
     }
 
+    @test()
+    protected static async getInstanceReturnsASingleton() {
+        assert.isEqual(LibndxAdapter.getInstance(), LibndxAdapter.getInstance())
+    }
+
     private static clearAndFakeFfi() {
         delete this.ffiRsOpenOptions
         delete this.ffiRsDefineOptions
@@ -153,8 +157,12 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         `.replace(/\s+/g, '')
     }
 
+    private static resetInstance() {
+        LibndxAdapter.resetInstance()
+    }
+
     private static LibndxAdapter() {
-        return LibndxAdapter.Create({
+        return LibndxAdapter.getInstance({
             libndxPath: this.libndxPath,
         })
     }

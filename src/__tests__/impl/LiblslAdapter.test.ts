@@ -133,7 +133,7 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async callsOpenOnFfiRs() {
+    protected static async callsFfiRsOpenWithRequiredOptions() {
         assert.isEqualDeep(this.ffiRsOpenOptions, {
             library: 'lsl',
             path: process.env.LIBLSL_PATH,
@@ -141,26 +141,7 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async worksAsASingleton() {
-        const liblsl = LiblslAdapter.getInstance()
-        //@ts-ignore
-        assert.isInstanceOf(liblsl, LiblslAdapter)
-    }
-
-    @test()
-    protected static async singletonIsTheSame() {
-        assert.isEqual(LiblslAdapter.getInstance(), LiblslAdapter.getInstance())
-    }
-
-    @test()
-    protected static canSetInstance() {
-        const fake = new FakeLiblsl()
-        LiblslAdapter.setInstance(fake)
-        assert.isEqual(LiblslAdapter.getInstance(), fake)
-    }
-
-    @test()
-    protected static async createsExpectedBindingsWithFfiRs() {
+    protected static async callsFfiRsDefineWithRequiredOptions() {
         assert.isEqualDeep(this.ffiRsDefineOptions, {
             lsl_local_clock: {
                 library: 'lsl',
@@ -257,6 +238,18 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
                 ],
             },
         })
+    }
+
+    @test()
+    protected static async getInstanceReturnsASingleton() {
+        assert.isEqual(LiblslAdapter.getInstance(), LiblslAdapter.getInstance())
+    }
+
+    @test()
+    protected static canSetInstance() {
+        const fake = new FakeLiblsl()
+        LiblslAdapter.setInstance(fake)
+        assert.isEqual(LiblslAdapter.getInstance(), fake)
     }
 
     @test()

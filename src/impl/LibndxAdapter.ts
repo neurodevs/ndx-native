@@ -5,6 +5,8 @@ export default class LibndxAdapter implements Libndx {
     public static ffiRsOpen = open
     public static ffiRsDefine = define
 
+    private static instance?: Libndx
+
     private libndxPath: string
 
     protected constructor(options?: LibndxAdapterOptions) {
@@ -15,8 +17,19 @@ export default class LibndxAdapter implements Libndx {
         this.tryToLoadBindings()
     }
 
-    public static Create(options?: LibndxAdapterOptions) {
-        return new (this.Class ?? this)(options)
+    public static getInstance(options?: LibndxAdapterOptions) {
+        if (!this.instance) {
+            this.setInstance(new this(options))
+        }
+        return this.instance!
+    }
+
+    public static setInstance(instance: Libndx) {
+        this.instance = instance
+    }
+
+    public static resetInstance() {
+        delete this.instance
     }
 
     private tryToLoadBindings() {
