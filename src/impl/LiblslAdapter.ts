@@ -46,15 +46,11 @@ export default class LiblslAdapter implements Liblsl {
 
     private tryToLoadBindings() {
         try {
-            this.loadBindings()
+            this.openLiblsl()
+            this.defineBindings()
         } catch (error) {
             this.throwFailedToLoadLiblsl(error as Error)
         }
-    }
-
-    private loadBindings() {
-        this.openLiblsl()
-        this.bindings = this.defineLiblslBindings()
     }
 
     private openLiblsl() {
@@ -64,8 +60,103 @@ export default class LiblslAdapter implements Liblsl {
         })
     }
 
-    private defineLiblslBindings() {
-        return this.define(this.liblslFuncs) as LiblslBindings
+    private defineBindings() {
+        this.bindings = this.define({
+            lsl_local_clock: {
+                library: 'lsl',
+                retType: DataType.Double,
+                paramsType: [],
+            },
+            lsl_create_streaminfo: {
+                library: 'lsl',
+                retType: DataType.External,
+                paramsType: [
+                    DataType.String,
+                    DataType.String,
+                    DataType.I32,
+                    DataType.Double,
+                    DataType.I32,
+                    DataType.String,
+                ],
+            },
+            lsl_destroy_streaminfo: {
+                library: 'lsl',
+                retType: DataType.Void,
+                paramsType: [DataType.External],
+            },
+            lsl_create_outlet: {
+                library: 'lsl',
+                retType: DataType.External,
+                paramsType: [DataType.External, DataType.I32, DataType.I32],
+            },
+            lsl_push_sample_ft: {
+                library: 'lsl',
+                retType: DataType.I32,
+                paramsType: [
+                    DataType.External,
+                    DataType.FloatArray,
+                    DataType.Double,
+                ],
+            },
+            lsl_push_sample_strt: {
+                library: 'lsl',
+                retType: DataType.I32,
+                paramsType: [
+                    DataType.External,
+                    DataType.StringArray,
+                    DataType.Double,
+                ],
+            },
+            lsl_destroy_outlet: {
+                library: 'lsl',
+                retType: DataType.Void,
+                paramsType: [DataType.External],
+            },
+            lsl_create_inlet: {
+                library: 'lsl',
+                retType: DataType.External,
+                paramsType: [
+                    DataType.External,
+                    DataType.I32,
+                    DataType.I32,
+                    DataType.I32,
+                ],
+            },
+            lsl_inlet_flush: {
+                library: 'lsl',
+                retType: DataType.I32,
+                paramsType: [DataType.External],
+            },
+            lsl_destroy_inlet: {
+                library: 'lsl',
+                retType: DataType.Void,
+                paramsType: [DataType.External],
+            },
+            lsl_get_desc: {
+                library: 'lsl',
+                retType: DataType.External,
+                paramsType: [DataType.External],
+            },
+            lsl_get_channel_count: {
+                library: 'lsl',
+                retType: DataType.I32,
+                paramsType: [DataType.External],
+            },
+            lsl_append_child: {
+                library: 'lsl',
+                retType: DataType.External,
+                paramsType: [DataType.External, DataType.String],
+            },
+            lsl_append_child_value: {
+                library: 'lsl',
+                retType: DataType.External,
+                paramsType: [
+                    DataType.External,
+                    DataType.String,
+                    DataType.String,
+                ],
+            },
+        }) as LiblslBindings
     }
 
     private throwFailedToLoadLiblsl(error: Error) {
@@ -351,105 +442,6 @@ export default class LiblslAdapter implements Liblsl {
     private get alloc() {
         return LiblslAdapter.alloc
     }
-
-    private get liblslFuncs() {
-        return {
-            lsl_local_clock: {
-                library: 'lsl',
-                retType: DataType.Double,
-                paramsType: [],
-            },
-            lsl_create_streaminfo: {
-                library: 'lsl',
-                retType: DataType.External,
-                paramsType: [
-                    DataType.String,
-                    DataType.String,
-                    DataType.I32,
-                    DataType.Double,
-                    DataType.I32,
-                    DataType.String,
-                ],
-            },
-            lsl_destroy_streaminfo: {
-                library: 'lsl',
-                retType: DataType.Void,
-                paramsType: [DataType.External],
-            },
-            lsl_create_outlet: {
-                library: 'lsl',
-                retType: DataType.External,
-                paramsType: [DataType.External, DataType.I32, DataType.I32],
-            },
-            lsl_push_sample_ft: {
-                library: 'lsl',
-                retType: DataType.I32,
-                paramsType: [
-                    DataType.External,
-                    DataType.FloatArray,
-                    DataType.Double,
-                ],
-            },
-            lsl_push_sample_strt: {
-                library: 'lsl',
-                retType: DataType.I32,
-                paramsType: [
-                    DataType.External,
-                    DataType.StringArray,
-                    DataType.Double,
-                ],
-            },
-            lsl_destroy_outlet: {
-                library: 'lsl',
-                retType: DataType.Void,
-                paramsType: [DataType.External],
-            },
-            lsl_create_inlet: {
-                library: 'lsl',
-                retType: DataType.External,
-                paramsType: [
-                    DataType.External,
-                    DataType.I32,
-                    DataType.I32,
-                    DataType.I32,
-                ],
-            },
-            lsl_inlet_flush: {
-                library: 'lsl',
-                retType: DataType.I32,
-                paramsType: [DataType.External],
-            },
-            lsl_destroy_inlet: {
-                library: 'lsl',
-                retType: DataType.Void,
-                paramsType: [DataType.External],
-            },
-            lsl_get_desc: {
-                library: 'lsl',
-                retType: DataType.External,
-                paramsType: [DataType.External],
-            },
-            lsl_get_channel_count: {
-                library: 'lsl',
-                retType: DataType.I32,
-                paramsType: [DataType.External],
-            },
-            lsl_append_child: {
-                library: 'lsl',
-                retType: DataType.External,
-                paramsType: [DataType.External, DataType.String],
-            },
-            lsl_append_child_value: {
-                library: 'lsl',
-                retType: DataType.External,
-                paramsType: [
-                    DataType.External,
-                    DataType.String,
-                    DataType.String,
-                ],
-            },
-        }
-    }
 }
 
 export interface Liblsl {
@@ -575,6 +567,8 @@ export interface DestroyInletOptions {
 }
 
 export interface LiblslBindings {
+    lsl_local_clock(args: []): number
+
     lsl_create_streaminfo(
         args: [string, string, number, number, number, string]
     ): InfoHandle
@@ -593,8 +587,6 @@ export interface LiblslBindings {
     lsl_create_inlet(args: any): InletHandle
     lsl_inlet_flush(args: [InletHandle]): void
     lsl_destroy_inlet(args: any): void
-
-    lsl_local_clock(args: []): number
 }
 
 export type ChannelFormat = (typeof CHANNEL_FORMATS)[number]
