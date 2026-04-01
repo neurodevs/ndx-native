@@ -1,13 +1,24 @@
-import { Libndx } from '../../impl/LibndxAdapter.js'
+import {
+    CreateBleBackendOptions,
+    Libndx,
+    LibndxAdapterOptions,
+} from '../../impl/LibndxAdapter.js'
 
 export default class FakeLibndx implements Libndx {
-    public static numCallsToConstructor = 0
+    public static callsToConstructor: (LibndxAdapterOptions | undefined)[] = []
+    public static callsToCreateBleBackend: CreateBleBackendOptions[] = []
 
-    public constructor() {
-        FakeLibndx.numCallsToConstructor++
+    public constructor(options?: LibndxAdapterOptions) {
+        FakeLibndx.callsToConstructor.push(options)
+    }
+
+    public createBleBackend(options: CreateBleBackendOptions) {
+        FakeLibndx.callsToCreateBleBackend.push(options)
+        return ''
     }
 
     public static resetTestDouble() {
-        FakeLibndx.numCallsToConstructor = 0
+        FakeLibndx.callsToConstructor = []
+        FakeLibndx.callsToCreateBleBackend = []
     }
 }

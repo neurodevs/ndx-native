@@ -8,6 +8,7 @@ export default class LibndxAdapter implements Libndx {
     private static instance?: Libndx
 
     private libndxPath: string
+    private bindings!: LibndxBindings
 
     protected constructor(options?: LibndxAdapterOptions) {
         const { libndxPath = '' } = options ?? {}
@@ -49,48 +50,48 @@ export default class LibndxAdapter implements Libndx {
     }
 
     private defineBindings() {
-        this.ffiRsDefine({
-            createBleBackend: {
+        this.bindings = this.ffiRsDefine({
+            create_ble_backend: {
                 library: 'ndx',
                 retType: DataType.String,
                 paramsType: [DataType.String],
             },
-            startBleBackend: {
+            start_ble_backend: {
                 library: 'ndx',
                 retType: DataType.String,
                 paramsType: [DataType.String],
             },
-            stopBleBackend: {
+            stop_ble_backend: {
                 library: 'ndx',
                 retType: DataType.String,
                 paramsType: [DataType.String],
             },
-            destroyBleBackend: {
+            destroy_ble_backend: {
                 library: 'ndx',
                 retType: DataType.String,
                 paramsType: [DataType.String],
             },
-            createFtdiBackend: {
+            create_ftdi_backend: {
                 library: 'ndx',
                 retType: DataType.String,
                 paramsType: [DataType.String],
             },
-            startFtdiBackend: {
+            start_ftdi_backend: {
                 library: 'ndx',
                 retType: DataType.String,
                 paramsType: [DataType.String],
             },
-            stopFtdiBackend: {
+            stop_ftdi_backend: {
                 library: 'ndx',
                 retType: DataType.String,
                 paramsType: [DataType.String],
             },
-            destroyFtdiBackend: {
+            destroy_ftdi_backend: {
                 library: 'ndx',
                 retType: DataType.String,
                 paramsType: [DataType.String],
             },
-        })
+        }) as LibndxBindings
     }
 
     private throwFailedToLoadLiblsl(err: Error) {
@@ -117,6 +118,11 @@ export default class LibndxAdapter implements Libndx {
         )
     }
 
+    public createBleBackend(options: CreateBleBackendOptions) {
+        const { deviceUuid } = options
+        return this.bindings.create_ble_backend([deviceUuid])
+    }
+
     private get ffiRsOpen() {
         return LibndxAdapter.ffiRsOpen
     }
@@ -126,10 +132,27 @@ export default class LibndxAdapter implements Libndx {
     }
 }
 
-export interface Libndx {}
+export interface Libndx {
+    createBleBackend(options: CreateBleBackendOptions): string
+}
 
 export type LibndxConstructor = new (options?: LibndxAdapterOptions) => Libndx
 
 export interface LibndxAdapterOptions {
     libndxPath?: string
+}
+
+export interface CreateBleBackendOptions {
+    deviceUuid: string
+}
+
+export interface LibndxBindings {
+    create_ble_backend(args: [string]): string
+    start_ble_backend(args: [string]): string
+    stop_ble_backend(args: [string]): string
+    destroy_ble_backend(args: [string]): string
+    create_ftdi_backend(args: [string]): string
+    start_ftdi_backend(args: [string]): string
+    stop_ftdi_backend(args: [string]): string
+    destroy_ftdi_backend(args: [string]): string
 }

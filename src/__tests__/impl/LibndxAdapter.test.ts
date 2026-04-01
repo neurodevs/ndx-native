@@ -1,9 +1,11 @@
 import { test, assert } from '@neurodevs/node-tdd'
 
-import LibndxAdapter, { Libndx } from '../../impl/LibndxAdapter.js'
+import LibndxAdapter, {
+    Libndx,
+    LibndxBindings,
+} from '../../impl/LibndxAdapter.js'
 import AbstractPackageTest from '../AbstractPackageTest.js'
 import { DataType, define, OpenParams } from 'ffi-rs'
-import { LibxdfBindings } from '../../impl/LibxdfAdapter.js'
 import { FfiRsDefineOptions } from '../../types.js'
 import FakeLibndx from '../../testDoubles/Libndx/FakeLibndx.js'
 
@@ -13,7 +15,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static instance: Libndx
     private static libndxPath = this.generateId()
     private static shouldThrowWhenLoadingBindings: boolean
-    private static fakeBindings: LibxdfBindings
+    private static fakeBindings: LibndxBindings
 
     private static ffiRsOpenOptions?: OpenParams
     private static ffiRsDefineOptions?: FfiRsDefineOptions
@@ -22,6 +24,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         await super.beforeEach()
 
         this.shouldThrowWhenLoadingBindings = false
+        this.fakeBindings = this.FakeBindings()
         this.clearAndFakeFfi()
 
         this.resetInstance()
@@ -61,42 +64,42 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         assert.isEqualDeep(
             this.ffiRsDefineOptions,
             {
-                createBleBackend: {
+                create_ble_backend: {
                     library: 'ndx',
                     retType: DataType.String,
                     paramsType: [DataType.String],
                 },
-                startBleBackend: {
+                start_ble_backend: {
                     library: 'ndx',
                     retType: DataType.String,
                     paramsType: [DataType.String],
                 },
-                stopBleBackend: {
+                stop_ble_backend: {
                     library: 'ndx',
                     retType: DataType.String,
                     paramsType: [DataType.String],
                 },
-                destroyBleBackend: {
+                destroy_ble_backend: {
                     library: 'ndx',
                     retType: DataType.String,
                     paramsType: [DataType.String],
                 },
-                createFtdiBackend: {
+                create_ftdi_backend: {
                     library: 'ndx',
                     retType: DataType.String,
                     paramsType: [DataType.String],
                 },
-                startFtdiBackend: {
+                start_ftdi_backend: {
                     library: 'ndx',
                     retType: DataType.String,
                     paramsType: [DataType.String],
                 },
-                stopFtdiBackend: {
+                stop_ftdi_backend: {
                     library: 'ndx',
                     retType: DataType.String,
                     paramsType: [DataType.String],
                 },
-                destroyFtdiBackend: {
+                destroy_ftdi_backend: {
                     library: 'ndx',
                     retType: DataType.String,
                     paramsType: [DataType.String],
@@ -116,6 +119,16 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         const fake = new FakeLibndx()
         LibndxAdapter.setInstance(fake)
         assert.isEqual(LibndxAdapter.getInstance(), fake)
+    }
+
+    @test()
+    protected static async createBleBackendReturnsJsonString() {
+        const raw = this.instance.createBleBackend({
+            deviceUuid: this.generateId(),
+        })
+        const json = JSON.parse(raw)
+
+        assert.isTruthy(json, 'createBleBackend did not return a JSON string!')
     }
 
     private static clearAndFakeFfi() {
@@ -163,6 +176,19 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
             \n Original error: ${this.fakeErrorMessage}
             \n
         `.replace(/\s+/g, '')
+    }
+
+    private static FakeBindings(): LibndxBindings {
+        return {
+            create_ble_backend: () => JSON.stringify({}),
+            start_ble_backend: () => JSON.stringify({}),
+            stop_ble_backend: () => JSON.stringify({}),
+            destroy_ble_backend: () => JSON.stringify({}),
+            create_ftdi_backend: () => JSON.stringify({}),
+            start_ftdi_backend: () => JSON.stringify({}),
+            stop_ftdi_backend: () => JSON.stringify({}),
+            destroy_ftdi_backend: () => JSON.stringify({}),
+        }
     }
 
     private static resetInstance() {
