@@ -5,6 +5,7 @@ import AbstractPackageTest from '../AbstractPackageTest.js'
 import { DataType, define, OpenParams } from 'ffi-rs'
 import { LibxdfBindings } from '../../impl/LibxdfAdapter.js'
 import { FfiRsDefineOptions } from '../../types.js'
+import FakeLibndx from '../../testDoubles/Libndx/FakeLibndx.js'
 
 export default class LibndxAdapterTest extends AbstractPackageTest {
     public static ffiRsDefine = define
@@ -108,6 +109,13 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     @test()
     protected static async getInstanceReturnsASingleton() {
         assert.isEqual(LibndxAdapter.getInstance(), LibndxAdapter.getInstance())
+    }
+
+    @test()
+    protected static canSetInstance() {
+        const fake = new FakeLibndx()
+        LibndxAdapter.setInstance(fake)
+        assert.isEqual(LibndxAdapter.getInstance(), fake)
     }
 
     private static clearAndFakeFfi() {
