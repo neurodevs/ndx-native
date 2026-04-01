@@ -29,20 +29,6 @@ export default class LiblslAdapter implements Liblsl {
         this.tryToLoadBindings()
     }
 
-    private tryToLoadBindings() {
-        try {
-            this.loadBindings()
-        } catch (error) {
-            this.throwFailedToLoadLiblsl(error as Error)
-        }
-    }
-
-    private throwFailedToLoadLiblsl(error: Error) {
-        throw new Error(
-            `Loading the liblsl dylib failed! I tried to load it from ${this.liblslPath}.\n\n${error.message}\n\n`
-        )
-    }
-
     public static getInstance() {
         if (!this.instance) {
             this.setInstance(new this())
@@ -56,6 +42,14 @@ export default class LiblslAdapter implements Liblsl {
 
     public static resetInstance() {
         delete this.instance
+    }
+
+    private tryToLoadBindings() {
+        try {
+            this.loadBindings()
+        } catch (error) {
+            this.throwFailedToLoadLiblsl(error as Error)
+        }
     }
 
     private loadBindings() {
@@ -72,6 +66,16 @@ export default class LiblslAdapter implements Liblsl {
 
     private defineLiblslBindings() {
         return this.define(this.liblslFuncs) as LiblslBindings
+    }
+
+    private throwFailedToLoadLiblsl(error: Error) {
+        throw new Error(
+            `Loading the liblsl dylib failed! I tried to load it from ${this.liblslPath}.\n\n${error.message}\n\n`
+        )
+    }
+
+    public localClock() {
+        return this.bindings.lsl_local_clock([])
     }
 
     public createStreamInfo(options: CreateStreamInfoOptions) {
@@ -332,10 +336,6 @@ export default class LiblslAdapter implements Liblsl {
         this.bindings.lsl_destroy_inlet([inletHandle])
     }
 
-    public localClock() {
-        return this.bindings.lsl_local_clock([])
-    }
-
     private get open() {
         return LiblslAdapter.open
     }
@@ -354,6 +354,11 @@ export default class LiblslAdapter implements Liblsl {
 
     private get liblslFuncs() {
         return {
+            lsl_local_clock: {
+                library: 'lsl',
+                retType: DataType.Double,
+                paramsType: [],
+            },
             lsl_create_streaminfo: {
                 library: 'lsl',
                 retType: DataType.External,
@@ -443,17 +448,14 @@ export default class LiblslAdapter implements Liblsl {
                     DataType.String,
                 ],
             },
-            lsl_local_clock: {
-                library: 'lsl',
-                retType: DataType.Double,
-                paramsType: [],
-            },
         }
     }
 }
 
 export interface Liblsl {
     liblslPath: string
+
+    localClock(): number
 
     createStreamInfo(options: CreateStreamInfoOptions): InfoHandle
     destroyStreamInfo(options: DestroyStreamInfoOptions): void
@@ -481,8 +483,6 @@ export interface Liblsl {
     pullChunk(options: PullChunkOptions): number
     flushInlet(options: FlushInletOptions): void
     destroyInlet(options: DestroyInletOptions): void
-
-    localClock(): number
 }
 
 export interface CreateStreamInfoOptions {

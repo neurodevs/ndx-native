@@ -162,6 +162,11 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
     @test()
     protected static async createsExpectedBindingsWithFfiRs() {
         assert.isEqualDeep(this.ffiRsDefineOptions, {
+            lsl_local_clock: {
+                library: 'lsl',
+                retType: DataType.Double,
+                paramsType: [],
+            },
             lsl_create_streaminfo: {
                 library: 'lsl',
                 retType: DataType.External,
@@ -250,11 +255,6 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
                     DataType.String,
                     DataType.String,
                 ],
-            },
-            lsl_local_clock: {
-                library: 'lsl',
-                retType: DataType.Double,
-                paramsType: [],
             },
         })
     }
