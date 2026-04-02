@@ -148,6 +148,11 @@ export default class LibndxAdapter implements Libndx {
         return this.bindings.start_ftdi_backend([serialNumber])
     }
 
+    public stopFtdiBackend(options: FtdiBackendOptions) {
+        const { serialNumber } = options
+        return this.bindings.stop_ftdi_backend([serialNumber])
+    }
+
     private get ffiRsOpen() {
         return LibndxAdapter.ffiRsOpen
     }
@@ -164,6 +169,7 @@ export interface Libndx {
     destroyBleBackend(options: BleBackendOptions): string
     createFtdiBackend(options: FtdiBackendOptions): string
     startFtdiBackend(options: FtdiBackendOptions): string
+    stopFtdiBackend(options: FtdiBackendOptions): string
 }
 
 export type LibndxConstructor = new (options?: LibndxAdapterOptions) => Libndx

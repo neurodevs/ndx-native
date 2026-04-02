@@ -13,6 +13,7 @@ export default class FakeLibndx implements Libndx {
     public static callsToDestroyBleBackend: BleBackendOptions[] = []
     public static callsToCreateFtdiBackend: FtdiBackendOptions[] = []
     public static callsToStartFtdiBackend: FtdiBackendOptions[] = []
+    public static callsToStopFtdiBackend: FtdiBackendOptions[] = []
 
     public constructor(options?: LibndxAdapterOptions) {
         FakeLibndx.callsToConstructor.push(options)
@@ -48,6 +49,11 @@ export default class FakeLibndx implements Libndx {
         return ''
     }
 
+    public stopFtdiBackend(options: FtdiBackendOptions) {
+        FakeLibndx.callsToStopFtdiBackend.push(options)
+        return ''
+    }
+
     public static resetTestDouble() {
         FakeLibndx.callsToConstructor = []
         FakeLibndx.callsToCreateBleBackend = []
@@ -56,5 +62,6 @@ export default class FakeLibndx implements Libndx {
         FakeLibndx.callsToDestroyBleBackend = []
         FakeLibndx.callsToCreateFtdiBackend = []
         FakeLibndx.callsToStartFtdiBackend = []
+        FakeLibndx.callsToStopFtdiBackend = []
     }
 }
