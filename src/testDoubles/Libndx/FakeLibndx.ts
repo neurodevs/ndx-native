@@ -9,6 +9,7 @@ export default class FakeLibndx implements Libndx {
     public static callsToCreateBleBackend: BleBackendOptions[] = []
     public static callsToStartBleBackend: BleBackendOptions[] = []
     public static callsToStopBleBacked: BleBackendOptions[] = []
+    public static callsToDestroyBleBackend: BleBackendOptions[] = []
 
     public constructor(options?: LibndxAdapterOptions) {
         FakeLibndx.callsToConstructor.push(options)
@@ -29,10 +30,16 @@ export default class FakeLibndx implements Libndx {
         return ''
     }
 
+    public destroyBleBackend(options: BleBackendOptions) {
+        FakeLibndx.callsToDestroyBleBackend.push(options)
+        return ''
+    }
+
     public static resetTestDouble() {
         FakeLibndx.callsToConstructor = []
         FakeLibndx.callsToCreateBleBackend = []
         FakeLibndx.callsToStartBleBackend = []
         FakeLibndx.callsToStopBleBacked = []
+        FakeLibndx.callsToDestroyBleBackend = []
     }
 }

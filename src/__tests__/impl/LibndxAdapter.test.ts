@@ -153,6 +153,16 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         assert.isTruthy(json, 'stopBleBackend did not return a JSON string!')
     }
 
+    @test()
+    protected static async destroyBleBackendCallsBindingAndReturnsJsonString() {
+        const raw = this.instance.destroyBleBackend({
+            deviceUuid: this.deviceUuid,
+        })
+        const json = JSON.parse(raw)
+
+        assert.isTruthy(json, 'stopBleBackend did not return a JSON string!')
+    }
+
     private static clearAndFakeFfi() {
         delete this.ffiRsOpenOptions
         delete this.ffiRsDefineOptions
