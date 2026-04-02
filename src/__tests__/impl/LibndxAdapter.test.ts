@@ -124,7 +124,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async createBleBackendReturnsJsonString() {
+    protected static async createBleBackendCallsBindingAndReturnsJsonString() {
         const raw = this.instance.createBleBackend({
             deviceUuid: this.deviceUuid,
         })
@@ -134,7 +134,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async startBleBackendReturnsJsonString() {
+    protected static async startBleBackendCallsBindingAndReturnsJsonString() {
         const raw = this.instance.startBleBackend({
             deviceUuid: this.deviceUuid,
         })
