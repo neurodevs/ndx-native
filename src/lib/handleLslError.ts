@@ -1,4 +1,4 @@
-export default function handleError(errorCode: number) {
+export default function handleLslError(errorCode: number) {
     switch (errorCode) {
         case 0:
             return
