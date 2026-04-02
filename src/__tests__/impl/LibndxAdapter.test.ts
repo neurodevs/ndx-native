@@ -20,6 +20,8 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static ffiRsOpenOptions?: OpenParams
     private static ffiRsDefineOptions?: FfiRsDefineOptions
 
+    private static readonly deviceUuid = this.generateId()
+
     protected static async beforeEach() {
         await super.beforeEach()
 
@@ -124,11 +126,21 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     @test()
     protected static async createBleBackendReturnsJsonString() {
         const raw = this.instance.createBleBackend({
-            deviceUuid: this.generateId(),
+            deviceUuid: this.deviceUuid,
         })
         const json = JSON.parse(raw)
 
         assert.isTruthy(json, 'createBleBackend did not return a JSON string!')
+    }
+
+    @test()
+    protected static async startBleBackendReturnsJsonString() {
+        const raw = this.instance.startBleBackend({
+            deviceUuid: this.deviceUuid,
+        })
+        const json = JSON.parse(raw)
+
+        assert.isTruthy(json, 'startBleBackend did not return a JSON string!')
     }
 
     private static clearAndFakeFfi() {

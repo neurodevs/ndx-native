@@ -118,9 +118,14 @@ export default class LibndxAdapter implements Libndx {
         )
     }
 
-    public createBleBackend(options: CreateBleBackendOptions) {
+    public createBleBackend(options: BleBackendOptions) {
         const { deviceUuid } = options
         return this.bindings.create_ble_backend([deviceUuid])
+    }
+
+    public startBleBackend(options: BleBackendOptions) {
+        const { deviceUuid } = options
+        return this.bindings.start_ble_backend([deviceUuid])
     }
 
     private get ffiRsOpen() {
@@ -133,7 +138,8 @@ export default class LibndxAdapter implements Libndx {
 }
 
 export interface Libndx {
-    createBleBackend(options: CreateBleBackendOptions): string
+    createBleBackend(options: BleBackendOptions): string
+    startBleBackend(options: BleBackendOptions): string
 }
 
 export type LibndxConstructor = new (options?: LibndxAdapterOptions) => Libndx
@@ -142,7 +148,7 @@ export interface LibndxAdapterOptions {
     libndxPath?: string
 }
 
-export interface CreateBleBackendOptions {
+export interface BleBackendOptions {
     deviceUuid: string
 }
 
