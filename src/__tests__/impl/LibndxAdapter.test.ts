@@ -20,7 +20,8 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static ffiRsOpenOptions?: OpenParams
     private static ffiRsDefineOptions?: FfiRsDefineOptions
 
-    private static readonly deviceUuid = this.generateId()
+    private static readonly bleDeviceUuid = this.generateId()
+    private static readonly ftdiSerialNumber = this.generateId()
 
     protected static async beforeEach() {
         await super.beforeEach()
@@ -126,7 +127,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     @test()
     protected static async createBleBackendCallsBindingAndReturnsJsonString() {
         const raw = this.instance.createBleBackend({
-            deviceUuid: this.deviceUuid,
+            deviceUuid: this.bleDeviceUuid,
         })
         const json = JSON.parse(raw)
 
@@ -136,7 +137,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     @test()
     protected static async startBleBackendCallsBindingAndReturnsJsonString() {
         const raw = this.instance.startBleBackend({
-            deviceUuid: this.deviceUuid,
+            deviceUuid: this.bleDeviceUuid,
         })
         const json = JSON.parse(raw)
 
@@ -146,7 +147,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     @test()
     protected static async stopBleBackendCallsBindingAndReturnsJsonString() {
         const raw = this.instance.stopBleBackend({
-            deviceUuid: this.deviceUuid,
+            deviceUuid: this.bleDeviceUuid,
         })
         const json = JSON.parse(raw)
 
@@ -156,11 +157,21 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     @test()
     protected static async destroyBleBackendCallsBindingAndReturnsJsonString() {
         const raw = this.instance.destroyBleBackend({
-            deviceUuid: this.deviceUuid,
+            deviceUuid: this.bleDeviceUuid,
         })
         const json = JSON.parse(raw)
 
-        assert.isTruthy(json, 'stopBleBackend did not return a JSON string!')
+        assert.isTruthy(json, 'destroyBleBackend did not return a JSON string!')
+    }
+
+    @test()
+    protected static async createFtdiBackendCallsBindingAndReturnsJsonString() {
+        const raw = this.instance.createFtdiBackend({
+            serialNumber: this.ftdiSerialNumber,
+        })
+        const json = JSON.parse(raw)
+
+        assert.isTruthy(json, 'createFtdiBackend did not return a JSON string!')
     }
 
     private static clearAndFakeFfi() {
