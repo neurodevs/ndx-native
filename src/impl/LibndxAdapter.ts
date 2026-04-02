@@ -38,7 +38,7 @@ export default class LibndxAdapter implements Libndx {
             this.openLibndx()
             this.defineBindings()
         } catch (err: unknown) {
-            this.throwFailedToLoadLiblsl(err as Error)
+            this.throwFailedToLoadLibndx(err as Error)
         }
     }
 
@@ -94,7 +94,7 @@ export default class LibndxAdapter implements Libndx {
         }) as LibndxBindings
     }
 
-    private throwFailedToLoadLiblsl(err: Error) {
+    private throwFailedToLoadLibndx(err: Error) {
         throw new Error(
             `
             \n -----------------------------------
