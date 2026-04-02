@@ -201,7 +201,10 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
         const json = JSON.parse(raw)
 
-        assert.isTruthy(json, 'destroyFtdiBackend did not return a JSON string!')
+        assert.isTruthy(
+            json,
+            'destroyFtdiBackend did not return a JSON string!'
+        )
     }
 
     private static clearAndFakeFfi() {
