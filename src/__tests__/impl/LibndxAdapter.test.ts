@@ -174,6 +174,16 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         assert.isTruthy(json, 'createFtdiBackend did not return a JSON string!')
     }
 
+    @test()
+    protected static async startFtdiBackendCallsBindingAndReturnsJsonString() {
+        const raw = this.instance.startFtdiBackend({
+            serialNumber: this.ftdiSerialNumber,
+        })
+        const json = JSON.parse(raw)
+
+        assert.isTruthy(json, 'startFtdiBackend did not return a JSON string!')
+    }
+
     private static clearAndFakeFfi() {
         delete this.ffiRsOpenOptions
         delete this.ffiRsDefineOptions
