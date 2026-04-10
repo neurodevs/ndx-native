@@ -13,7 +13,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     public static ffiRsDefine = define
 
     private static instance: Libndx
-    private static libndxPath = this.generateId()
+    private static libndxPath = '/opt/local/lib/libndx.dylib'
     private static shouldThrowWhenLoadingBindings: boolean
     private static fakeBindings: LibndxBindings
 
@@ -272,8 +272,6 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     private static LibndxAdapter() {
-        return LibndxAdapter.getInstance({
-            libndxPath: this.libndxPath,
-        })
+        return LibndxAdapter.getInstance()
     }
 }

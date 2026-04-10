@@ -11,7 +11,7 @@ export default class LibndxAdapter implements Libndx {
     private bindings!: LibndxBindings
 
     protected constructor(options?: LibndxAdapterOptions) {
-        const { libndxPath = '' } = options ?? {}
+        const { libndxPath = '/opt/local/lib/libndx.dylib' } = options ?? {}
 
         this.libndxPath = libndxPath
 
