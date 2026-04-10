@@ -120,7 +120,8 @@ export default class LibndxAdapter implements Libndx {
 
     public createBleBackend(options: BleBackendOptions) {
         const { deviceUuid } = options
-        return this.bindings.create_ble_backend([deviceUuid])
+        const configJson = JSON.stringify({ uuid: deviceUuid })
+        return this.bindings.create_ble_backend([configJson])
     }
 
     public startBleBackend(options: BleBackendOptions) {
@@ -140,7 +141,8 @@ export default class LibndxAdapter implements Libndx {
 
     public createFtdiBackend(options: FtdiBackendOptions) {
         const { serialNumber } = options
-        return this.bindings.create_ftdi_backend([serialNumber])
+        const configJson = JSON.stringify({ serialNumber })
+        return this.bindings.create_ftdi_backend([configJson])
     }
 
     public startFtdiBackend(options: FtdiBackendOptions) {
