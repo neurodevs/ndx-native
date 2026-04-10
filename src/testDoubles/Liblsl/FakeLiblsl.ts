@@ -21,7 +21,7 @@ import {
     OpenStreamOptions,
     CloseStreamOptions,
     GetChannelCountOptions,
-} from 'impl/LiblslAdapter.js'
+} from '../../impl/LiblslAdapter.js'
 
 export default class FakeLiblsl implements Liblsl {
     public static fakeInfoHandles: InfoHandle[] = []

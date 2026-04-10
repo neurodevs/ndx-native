@@ -19,7 +19,7 @@ import {
     LiblslBindings,
     LslChannel,
     ResolveByPropOptions,
-} from 'impl/LiblslAdapter.js'
+} from '../../impl/LiblslAdapter.js'
 import LiblslAdapter from '../../impl/LiblslAdapter.js'
 import FakeLiblsl from '../../testDoubles/Liblsl/FakeLiblsl.js'
 import AbstractPackageTest from '../AbstractPackageTest.js'

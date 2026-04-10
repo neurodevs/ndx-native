@@ -10,7 +10,7 @@ import LibxdfAdapter, {
     LibxdfBindings,
     XdfFile,
 } from '../../impl/LibxdfAdapter.js'
-import { FfiRsDefineOptions } from 'types.js'
+import { FfiRsDefineOptions } from '../../types.js'
 import SpyLibxdf from '../../testDoubles/Libxdf/SpyLibxdf.js'
 import AbstractPackageTest from '../AbstractPackageTest.js'
 
