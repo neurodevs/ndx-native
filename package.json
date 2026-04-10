@@ -43,7 +43,7 @@
     "@neurodevs/eslint-config-ndx": "^1.0.1",
     "@neurodevs/generate-id": "^1.1.2",
     "@neurodevs/node-tdd": "^0.2.5",
-    "@neurodevs/prettier-config-ndx": "^1.0.1",
+    "@neurodevs/prettier-config-ndx": "^1.0.2",
     "@regressionproof/cli": "^0.9.4",
     "@regressionproof/jest-reporter": "^0.9.4",
     "jest": "^30.2.0",

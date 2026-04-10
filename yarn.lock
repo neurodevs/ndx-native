@@ -732,7 +732,7 @@
     "@sprucelabs/test" "^10.0.25"
     "@sprucelabs/test-utils" "^6.0.117"
 
-"@neurodevs/prettier-config-ndx@^1.0.1":
+"@neurodevs/prettier-config-ndx@^1.0.2":
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/@neurodevs/prettier-config-ndx/-/prettier-config-ndx-1.0.2.tgz#3fda0e9b2c2e0802c515b7009c805cd057462339"
   integrity sha512-HIiKieIwZDuDObj8CSDBkKZs79Ts1u+KS1iA2G92Dwt2KjnbV6jdkqFwadl+OD27Jl/wKA6lw7O72zVBC+DkIg==
