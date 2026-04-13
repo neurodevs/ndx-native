@@ -144,6 +144,11 @@ export default class LibndxAdapter implements Libndx {
         return this.bindings.destroy_ble_backend([deviceUuid])
     }
 
+    public getRssiBleBackend(options: BleBackendOptions) {
+        const { deviceUuid } = options
+        return this.bindings.get_rssi_ble_backend([deviceUuid])
+    }
+
     public createFtdiBackend(options: FtdiBackendOptions) {
         const { serialNumber } = options
         const configJson = JSON.stringify({ serialNumber })
@@ -179,6 +184,7 @@ export interface Libndx {
     startBleBackend(options: BleBackendOptions): string
     stopBleBackend(options: BleBackendOptions): string
     destroyBleBackend(options: BleBackendOptions): string
+    getRssiBleBackend(options: BleBackendOptions): string
     createFtdiBackend(options: FtdiBackendOptions): string
     startFtdiBackend(options: FtdiBackendOptions): string
     stopFtdiBackend(options: FtdiBackendOptions): string
@@ -204,6 +210,7 @@ export interface LibndxBindings {
     start_ble_backend(args: [string]): string
     stop_ble_backend(args: [string]): string
     destroy_ble_backend(args: [string]): string
+    get_rssi_ble_backend(args: [string]): string
     create_ftdi_backend(args: [string]): string
     start_ftdi_backend(args: [string]): string
     stop_ftdi_backend(args: [string]): string

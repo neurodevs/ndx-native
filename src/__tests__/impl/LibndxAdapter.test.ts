@@ -27,6 +27,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static readonly callsToStartBle: string[][] = []
     private static readonly callsToStopBle: string[][] = []
     private static readonly callsToDestroyBle: string[][] = []
+    private static readonly callsToGetRssi: string[][] = []
     private static readonly callsToCreateFtdi: string[][] = []
     private static readonly callsToStartFtdi: string[][] = []
     private static readonly callsToStopFtdi: string[][] = []
@@ -216,6 +217,25 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
+    protected static async getRssiBleBackendCallsBindingWithExpectedArgs() {
+        this.getRssiBleBackend()
+        
+        assert.isEqual(
+            this.callsToGetRssi[0][0],
+            this.bleDeviceUuid,
+            'getRssiBleBackend did not call binding with expected args!'
+        )
+    }
+
+    @test()
+    protected static async getRssiBleBackendReturnsJson() {
+        const raw = this.getRssiBleBackend()
+        const json = JSON.parse(raw)
+
+        assert.isTruthy(json, 'getRssiBleBackend did not return a JSON string!')
+    }
+
+    @test()
     protected static async createFtdiBackendCallsBindingWithExpectedArgs() {
         this.createFtdiBackend()
 
@@ -318,6 +338,12 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
     }
 
+    private static getRssiBleBackend() {
+        return this.instance.getRssiBleBackend({
+            deviceUuid: this.bleDeviceUuid,
+        })
+    }
+
     private static createFtdiBackend() {
         return this.instance.createFtdiBackend({
             serialNumber: this.ftdiSerialNumber,
@@ -360,6 +386,10 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 this.callsToDestroyBle.push(args)
                 return JSON.stringify({})
             },
+            get_rssi_ble_backend: (args) => {
+                this.callsToGetRssi.push(args)
+                return JSON.stringify({})
+            },
             create_ftdi_backend: (args) => {
                 this.callsToCreateFtdi.push(args)
                 return JSON.stringify({})
@@ -384,6 +414,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         this.callsToStartBle.length = 0
         this.callsToStopBle.length = 0
         this.callsToDestroyBle.length = 0
+        this.callsToGetRssi.length = 0
         this.callsToCreateFtdi.length = 0
         this.callsToStartFtdi.length = 0
         this.callsToStopFtdi.length = 0
