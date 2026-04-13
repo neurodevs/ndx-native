@@ -66,6 +66,11 @@ export default class LibndxAdapter implements Libndx {
                 retType: DataType.String,
                 paramsType: [DataType.String],
             },
+            get_rssi_ble_backend: {
+                library: 'ndx',
+                retType: DataType.String,
+                paramsType: [DataType.String],
+            },
             destroy_ble_backend: {
                 library: 'ndx',
                 retType: DataType.String,

@@ -97,6 +97,11 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                     retType: DataType.String,
                     paramsType: [DataType.String],
                 },
+                get_rssi_ble_backend: {
+                    library: 'ndx',
+                    retType: DataType.String,
+                    paramsType: [DataType.String],
+                },
                 create_ftdi_backend: {
                     library: 'ndx',
                     retType: DataType.String,
