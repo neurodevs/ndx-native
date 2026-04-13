@@ -219,7 +219,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     @test()
     protected static async getRssiBleBackendCallsBindingWithExpectedArgs() {
         this.getRssiBleBackend()
-        
+
         assert.isEqual(
             this.callsToGetRssi[0][0],
             this.bleDeviceUuid,
