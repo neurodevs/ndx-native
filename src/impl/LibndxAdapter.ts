@@ -139,6 +139,18 @@ export default class LibndxAdapter implements Libndx {
         return this.bindings.start_ble_backend([deviceUuid])
     }
 
+    public writeBleCharacteristic(options: BleWriteOptions) {
+        const { deviceUuid, characteristicUuid, value } = options
+
+        const configJson = JSON.stringify({
+            device_uuid: deviceUuid,
+            characteristic_uuid: characteristicUuid,
+            value,
+        })
+
+        return this.bindings.write_ble_characteristic([configJson])
+    }
+
     public stopBleBackend(options: BleBackendOptions) {
         const { deviceUuid } = options
         return this.bindings.stop_ble_backend([deviceUuid])
@@ -187,6 +199,7 @@ export default class LibndxAdapter implements Libndx {
 export interface Libndx {
     createBleBackend(options: BleBackendOptions): string
     startBleBackend(options: BleBackendOptions): string
+    writeBleCharacteristic(options: BleWriteOptions): string
     stopBleBackend(options: BleBackendOptions): string
     destroyBleBackend(options: BleBackendOptions): string
     getRssiBleBackend(options: BleBackendOptions): string
@@ -206,6 +219,12 @@ export interface BleBackendOptions {
     deviceUuid: string
 }
 
+export interface BleWriteOptions {
+    deviceUuid: string
+    characteristicUuid: string
+    value: string
+}
+
 export interface FtdiBackendOptions {
     serialNumber: string
 }
@@ -213,6 +232,7 @@ export interface FtdiBackendOptions {
 export interface LibndxBindings {
     create_ble_backend(args: [string]): string
     start_ble_backend(args: [string]): string
+    write_ble_characteristic(args: [string]): string
     stop_ble_backend(args: [string]): string
     destroy_ble_backend(args: [string]): string
     get_rssi_ble_backend(args: [string]): string

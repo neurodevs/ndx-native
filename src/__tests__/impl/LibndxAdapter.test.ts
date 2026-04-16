@@ -21,10 +21,14 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static ffiRsDefineOptions?: FfiRsDefineOptions
 
     private static readonly bleDeviceUuid = this.generateId()
+    private static readonly bleCharacteristicUuid = this.generateId()
+    private static readonly bleValueToWrite = this.generateId()
+
     private static readonly ftdiSerialNumber = this.generateId()
 
     private static readonly callsToCreateBle: string[][] = []
     private static readonly callsToStartBle: string[][] = []
+    private static readonly callsToWriteBle: string[][] = []
     private static readonly callsToStopBle: string[][] = []
     private static readonly callsToDestroyBle: string[][] = []
     private static readonly callsToGetRssi: string[][] = []
@@ -184,6 +188,34 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
+    protected static async writeBleCharacteristicCallsBindingWithExpectedArgs() {
+        this.writeBleCharacteristic()
+
+        const expected = JSON.stringify({
+            device_uuid: this.bleDeviceUuid,
+            characteristic_uuid: this.bleCharacteristicUuid,
+            value: this.bleValueToWrite,
+        })
+
+        assert.isEqual(
+            this.callsToWriteBle[0][0],
+            expected,
+            'writeBleCharacteristic did not call binding with expected args!'
+        )
+    }
+
+    @test()
+    protected static async writeBleCharacteristicReturnsJsonString() {
+        const raw = this.writeBleCharacteristic()
+        const json = JSON.parse(raw)
+
+        assert.isTruthy(
+            json,
+            'writeBleCharacteristic did not return a JSON string!'
+        )
+    }
+
+    @test()
     protected static async stopBleBackendCallsBindingWithExpectedArgs() {
         this.stopBleBackend()
 
@@ -331,6 +363,14 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
     }
 
+    private static writeBleCharacteristic() {
+        return this.instance.writeBleCharacteristic({
+            deviceUuid: this.bleDeviceUuid,
+            characteristicUuid: this.bleCharacteristicUuid,
+            value: this.bleValueToWrite,
+        })
+    }
+
     private static stopBleBackend() {
         return this.instance.stopBleBackend({
             deviceUuid: this.bleDeviceUuid,
@@ -381,6 +421,10 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
             },
             start_ble_backend: (args) => {
                 this.callsToStartBle.push(args)
+                return JSON.stringify({})
+            },
+            write_ble_characteristic: (args) => {
+                this.callsToWriteBle.push(args)
                 return JSON.stringify({})
             },
             stop_ble_backend: (args) => {
