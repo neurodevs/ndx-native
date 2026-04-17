@@ -40,6 +40,11 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
+    public readBleRssi(options: BleBackendOptions) {
+        FakeLibndx.callsToGetRssiBleBackend.push(options)
+        return FakeLibndx.fakeResult
+    }
+
     public stopBleBackend(options: BleBackendOptions) {
         FakeLibndx.callsToStopBleBacked.push(options)
         return FakeLibndx.fakeResult
@@ -47,11 +52,6 @@ export default class FakeLibndx implements Libndx {
 
     public destroyBleBackend(options: BleBackendOptions) {
         FakeLibndx.callsToDestroyBleBackend.push(options)
-        return FakeLibndx.fakeResult
-    }
-
-    public getRssiBleBackend(options: BleBackendOptions) {
-        FakeLibndx.callsToGetRssiBleBackend.push(options)
         return FakeLibndx.fakeResult
     }
 
