@@ -142,13 +142,11 @@ export default class LibndxAdapter implements Libndx {
     public writeBleCharacteristic(options: BleWriteOptions) {
         const { deviceUuid, characteristicUuid, value } = options
 
-        const configJson = JSON.stringify({
-            device_uuid: deviceUuid,
-            characteristic_uuid: characteristicUuid,
+        return this.bindings.write_ble_characteristic([
+            deviceUuid,
+            characteristicUuid,
             value,
-        })
-
-        return this.bindings.write_ble_characteristic([configJson])
+        ])
     }
 
     public readBleRssi(options: BleBackendOptions) {
@@ -232,7 +230,7 @@ export interface FtdiBackendOptions {
 export interface LibndxBindings {
     create_ble_backend(args: [string]): string
     start_ble_backend(args: [string]): string
-    write_ble_characteristic(args: [string]): string
+    write_ble_characteristic(args: [string, string, string]): string
     read_ble_rssi(args: [string]): string
     stop_ble_backend(args: [string]): string
     destroy_ble_backend(args: [string]): string

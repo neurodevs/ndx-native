@@ -95,7 +95,11 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 write_ble_characteristic: {
                     library: 'ndx',
                     retType: DataType.String,
-                    paramsType: [DataType.String, DataType.String, DataType.String],
+                    paramsType: [
+                        DataType.String,
+                        DataType.String,
+                        DataType.String,
+                    ],
                 },
                 read_ble_rssi: {
                     library: 'ndx',
@@ -191,15 +195,13 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     protected static async writeBleCharacteristicCallsBindingWithExpectedArgs() {
         this.writeBleCharacteristic()
 
-        const expected = JSON.stringify({
-            device_uuid: this.bleDeviceUuid,
-            characteristic_uuid: this.bleCharacteristicUuid,
-            value: this.bleValueToWrite,
-        })
-
-        assert.isEqual(
-            this.callsToWriteBle[0][0],
-            expected,
+        assert.isEqualDeep(
+            this.callsToWriteBle[0],
+            [
+                this.bleDeviceUuid,
+                this.bleCharacteristicUuid,
+                this.bleValueToWrite,
+            ],
             'writeBleCharacteristic did not call binding with expected args!'
         )
     }
