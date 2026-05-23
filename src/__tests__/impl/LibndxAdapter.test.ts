@@ -5,20 +5,16 @@ import LibndxAdapter, {
     LibndxBindings,
 } from '../../impl/LibndxAdapter.js'
 import AbstractPackageTest from '../AbstractPackageTest.js'
-import { DataType, define, OpenParams } from 'ffi-rs'
-import { FfiRsDefineOptions } from '../../types.js'
 import FakeLibndx from '../../testDoubles/Libndx/FakeLibndx.js'
 
 export default class LibndxAdapterTest extends AbstractPackageTest {
-    public static ffiRsDefine = define
-
     private static instance: Libndx
     private static libndxPath = '/opt/local/lib/libndx.dylib'
     private static shouldThrowWhenLoadingBindings: boolean
     private static fakeBindings: LibndxBindings
 
-    private static ffiRsOpenOptions?: OpenParams
-    private static ffiRsDefineOptions?: FfiRsDefineOptions
+    private static koffiLoadPath?: string
+    private static koffiFuncSignatures?: string[]
 
     private static readonly bleDeviceUuid = this.generateId()
     private static readonly bleCharacteristicUuid = this.generateId()
@@ -70,74 +66,31 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async callsFfiRsOpenWithRequiredOptions() {
-        assert.isEqualDeep(this.ffiRsOpenOptions, {
-            library: 'ndx',
-            path: this.libndxPath,
-        })
+    protected static async callsKoffiLoadWithLibndxPath() {
+        assert.isEqual(
+            this.koffiLoadPath,
+            this.libndxPath,
+            'Did not call koffiLoad with the expected library path!'
+        )
     }
 
     @test()
-    protected static async callsFfiRsDefineWithRequiredOptions() {
+    protected static async registersExpectedKoffiFuncSignatures() {
         assert.isEqualDeep(
-            this.ffiRsDefineOptions,
-            {
-                create_ble_backend: {
-                    library: 'ndx',
-                    retType: DataType.String,
-                    paramsType: [DataType.String],
-                },
-                start_ble_backend: {
-                    library: 'ndx',
-                    retType: DataType.String,
-                    paramsType: [DataType.String],
-                },
-                write_ble_characteristic: {
-                    library: 'ndx',
-                    retType: DataType.String,
-                    paramsType: [
-                        DataType.String,
-                        DataType.String,
-                        DataType.String,
-                    ],
-                },
-                read_ble_rssi: {
-                    library: 'ndx',
-                    retType: DataType.String,
-                    paramsType: [DataType.String],
-                },
-                stop_ble_backend: {
-                    library: 'ndx',
-                    retType: DataType.String,
-                    paramsType: [DataType.String],
-                },
-                destroy_ble_backend: {
-                    library: 'ndx',
-                    retType: DataType.String,
-                    paramsType: [DataType.String],
-                },
-                create_ftdi_backend: {
-                    library: 'ndx',
-                    retType: DataType.String,
-                    paramsType: [DataType.String],
-                },
-                start_ftdi_backend: {
-                    library: 'ndx',
-                    retType: DataType.String,
-                    paramsType: [DataType.String],
-                },
-                stop_ftdi_backend: {
-                    library: 'ndx',
-                    retType: DataType.String,
-                    paramsType: [DataType.String],
-                },
-                destroy_ftdi_backend: {
-                    library: 'ndx',
-                    retType: DataType.String,
-                    paramsType: [DataType.String],
-                },
-            },
-            'Did not pass valid options to ffiRsDefine!'
+            this.koffiFuncSignatures,
+            [
+                'str create_ble_backend(str config)',
+                'str start_ble_backend(str uuid)',
+                'str write_ble_characteristic(str uuid, str charUuid, str value)',
+                'str read_ble_rssi(str uuid)',
+                'str stop_ble_backend(str uuid)',
+                'str destroy_ble_backend(str uuid)',
+                'str create_ftdi_backend(str config)',
+                'str start_ftdi_backend(str serial)',
+                'str stop_ftdi_backend(str serial)',
+                'str destroy_ftdi_backend(str serial)',
+            ],
+            'Did not register expected koffi func signatures!'
         )
     }
 
@@ -473,28 +426,28 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     private static clearAndFakeFfi() {
-        delete this.ffiRsOpenOptions
-        delete this.ffiRsDefineOptions
-        this.fakeFfiRsOpen()
-        this.fakeFfiRsDefine()
+        delete this.koffiLoadPath
+        this.koffiFuncSignatures = []
+        this.fakeKoffiLoad()
     }
 
-    private static fakeFfiRsOpen() {
-        LibndxAdapter.ffiRsOpen = (options) => {
-            this.ffiRsOpenOptions = options
+    private static fakeKoffiLoad() {
+        LibndxAdapter.koffiLoad = (path) => {
+            this.koffiLoadPath = path as string
+            return {
+                func: (sig: string) => {
+                    this.koffiFuncSignatures!.push(sig)
+
+                    if (this.shouldThrowWhenLoadingBindings) {
+                        throw new Error(this.fakeErrorMessage)
+                    }
+
+                    const name = sig.match(/\w+\s+(\w+)\s*\(/)![1] as keyof LibndxBindings
+                    return (...args: string[]) =>
+                        this.fakeBindings[name](args as any)
+                },
+            } as any
         }
-    }
-
-    private static fakeFfiRsDefine() {
-        LibndxAdapter.ffiRsDefine = ((options) => {
-            this.ffiRsDefineOptions = options
-
-            if (this.shouldThrowWhenLoadingBindings) {
-                throw new Error(this.fakeErrorMessage)
-            }
-
-            return this.fakeBindings as any
-        }) as typeof define
     }
 
     private static get failedToLoadError() {

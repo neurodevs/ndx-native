@@ -1,9 +1,8 @@
-import { DataType, define, open } from 'ffi-rs'
+import koffi from 'koffi'
 
 export default class LibndxAdapter implements Libndx {
     public static Class?: LibndxConstructor
-    public static ffiRsOpen = open
-    public static ffiRsDefine = define
+    public static koffiLoad: typeof koffi.load = koffi.load.bind(koffi)
 
     private static instance?: Libndx
 
@@ -35,80 +34,62 @@ export default class LibndxAdapter implements Libndx {
 
     private tryToLoadBindings() {
         try {
-            this.openLibndx()
             this.defineBindings()
         } catch (err: unknown) {
             this.throwFailedToLoadLibndx(err as Error)
         }
     }
 
-    private openLibndx() {
-        this.ffiRsOpen({
-            library: 'ndx',
-            path: this.libndxPath,
-        })
-    }
-
     private defineBindings() {
-        this.bindings = this.ffiRsDefine({
-            create_ble_backend: {
-                library: 'ndx',
-                retType: DataType.String,
-                paramsType: [DataType.String],
-            },
-            start_ble_backend: {
-                library: 'ndx',
-                retType: DataType.String,
-                paramsType: [DataType.String],
-            },
-            write_ble_characteristic: {
-                library: 'ndx',
-                retType: DataType.String,
-                paramsType: [DataType.String, DataType.String, DataType.String],
-            },
-            read_ble_rssi: {
-                library: 'ndx',
-                retType: DataType.String,
-                paramsType: [DataType.String],
-            },
-            stop_ble_backend: {
-                library: 'ndx',
-                retType: DataType.String,
-                paramsType: [DataType.String],
-            },
-            destroy_ble_backend: {
-                library: 'ndx',
-                retType: DataType.String,
-                paramsType: [DataType.String],
-            },
-            create_ftdi_backend: {
-                library: 'ndx',
-                retType: DataType.String,
-                paramsType: [DataType.String],
-            },
-            start_ftdi_backend: {
-                library: 'ndx',
-                retType: DataType.String,
-                paramsType: [DataType.String],
-            },
-            stop_ftdi_backend: {
-                library: 'ndx',
-                retType: DataType.String,
-                paramsType: [DataType.String],
-            },
-            destroy_ftdi_backend: {
-                library: 'ndx',
-                retType: DataType.String,
-                paramsType: [DataType.String],
-            },
-        }) as LibndxBindings
+        const lib = LibndxAdapter.koffiLoad(this.libndxPath)
+
+        const wrap1 =
+            (f: (a: string) => string) =>
+            (args: [string]) =>
+                f(args[0])
+
+        const wrap3 =
+            (f: (a: string, b: string, c: string) => string) =>
+            (args: [string, string, string]) =>
+                f(args[0], args[1], args[2])
+
+        this.bindings = {
+            create_ble_backend: wrap1(
+                lib.func('str create_ble_backend(str config)')
+            ),
+            start_ble_backend: wrap1(
+                lib.func('str start_ble_backend(str uuid)')
+            ),
+            write_ble_characteristic: wrap3(
+                lib.func(
+                    'str write_ble_characteristic(str uuid, str charUuid, str value)'
+                )
+            ),
+            read_ble_rssi: wrap1(lib.func('str read_ble_rssi(str uuid)')),
+            stop_ble_backend: wrap1(lib.func('str stop_ble_backend(str uuid)')),
+            destroy_ble_backend: wrap1(
+                lib.func('str destroy_ble_backend(str uuid)')
+            ),
+            create_ftdi_backend: wrap1(
+                lib.func('str create_ftdi_backend(str config)')
+            ),
+            start_ftdi_backend: wrap1(
+                lib.func('str start_ftdi_backend(str serial)')
+            ),
+            stop_ftdi_backend: wrap1(
+                lib.func('str stop_ftdi_backend(str serial)')
+            ),
+            destroy_ftdi_backend: wrap1(
+                lib.func('str destroy_ftdi_backend(str serial)')
+            ),
+        }
     }
 
     private throwFailedToLoadLibndx(err: Error) {
         throw new Error(
             `
             \n -----------------------------------
-            \n Failed to load libndx! Tried to load from: 
+            \n Failed to load libndx! Tried to load from:
             \n     ${this.libndxPath}
             \n Instructions to save your day (on MacOS):
             \n     1. git clone https://github.com/neurodevs/libndx.git
@@ -116,7 +97,7 @@ export default class LibndxAdapter implements Libndx {
             \n     3. sudo cp build/libndx.dylib /opt/local/lib/
             \n     4. Try whatever you were doing again!
             \n Modify step 3 for your OS if you are not on MacOS.
-            \n If you're still unsure, ask an LLM with this error and your OS. 
+            \n If you're still unsure, ask an LLM with this error and your OS.
             \n You could also post an issue on the repo:
             \n     https://github.com/neurodevs/ndx-native/issues
             \n Good luck!
@@ -141,7 +122,6 @@ export default class LibndxAdapter implements Libndx {
 
     public writeBleCharacteristic(options: BleWriteOptions) {
         const { deviceUuid, characteristicUuid, value } = options
-
         return this.bindings.write_ble_characteristic([
             deviceUuid,
             characteristicUuid,
@@ -183,14 +163,6 @@ export default class LibndxAdapter implements Libndx {
     public destroyFtdiBackend(options: FtdiBackendOptions) {
         const { serialNumber } = options
         return this.bindings.destroy_ftdi_backend([serialNumber])
-    }
-
-    private get ffiRsOpen() {
-        return LibndxAdapter.ffiRsOpen
-    }
-
-    private get ffiRsDefine() {
-        return LibndxAdapter.ffiRsDefine
     }
 }
 
