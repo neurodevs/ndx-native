@@ -23,7 +23,8 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static readonly ftdiSerialNumber = this.generateId()
 
     private static readonly callsToCreateBle: string[][] = []
-    private static readonly callsToStartBle: string[][] = []
+    private static readonly onDataCallback = (_data: Buffer, _timestamp: number) => {}
+    private static readonly callsToStartBle: { uuid: string; onData: (data: Buffer, timestamp: number) => void }[] = []
     private static readonly callsToWriteBle: string[][] = []
     private static readonly callsToReadRssi: string[][] = []
     private static readonly callsToStopBle: string[][] = []
@@ -80,7 +81,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
             this.koffiFuncSignatures,
             [
                 'str create_ble_backend(str config)',
-                'str start_ble_backend(str uuid)',
+                'str start_ble_backend(str uuid, DataCallback *cb)',
                 'str write_ble_characteristic(str uuid, str charUuid, str value)',
                 'str read_ble_rssi(str uuid)',
                 'str stop_ble_backend(str uuid)',
@@ -130,9 +131,15 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         this.startBleBackend()
 
         assert.isEqual(
-            this.callsToStartBle[0][0],
+            this.callsToStartBle[0].uuid,
             this.bleDeviceUuid,
-            'startBleBackend did not call binding with expected args!'
+            'startBleBackend did not pass expected uuid to binding!'
+        )
+
+        assert.isEqual(
+            this.callsToStartBle[0].onData,
+            this.onDataCallback,
+            'startBleBackend did not pass expected callback to binding!'
         )
     }
 
@@ -315,6 +322,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static startBleBackend() {
         return this.instance.startBleBackend({
             deviceUuid: this.bleDeviceUuid,
+            onData: this.onDataCallback,
         })
     }
 
@@ -374,8 +382,8 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 this.callsToCreateBle.push(args)
                 return JSON.stringify({})
             },
-            start_ble_backend: (args) => {
-                this.callsToStartBle.push(args)
+            start_ble_backend: (args: any) => {
+                this.callsToStartBle.push({ uuid: args[0], onData: args[1] })
                 return JSON.stringify({})
             },
             write_ble_characteristic: (args) => {
@@ -429,6 +437,11 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         delete this.koffiLoadPath
         this.koffiFuncSignatures = []
         this.fakeKoffiLoad()
+        this.fakeKoffiRegister()
+    }
+
+    private static fakeKoffiRegister() {
+        LibndxAdapter.koffiRegister = (fn) => fn as any
     }
 
     private static fakeKoffiLoad() {
@@ -445,8 +458,8 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                     const name = sig.match(
                         /\w+\s+(\w+)\s*\(/
                     )![1] as keyof LibndxBindings
-                    return (...args: string[]) =>
-                        this.fakeBindings[name](args as any)
+                    return (...args: unknown[]) =>
+                        (this.fakeBindings[name] as (a: unknown) => string)(args)
                 },
             } as any
         }

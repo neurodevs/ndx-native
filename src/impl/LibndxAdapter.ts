@@ -3,6 +3,11 @@ import koffi from 'koffi'
 export default class LibndxAdapter implements Libndx {
     public static Class?: LibndxConstructor
     public static koffiLoad: typeof koffi.load = koffi.load.bind(koffi)
+    public static koffiRegister = koffi.register.bind(koffi)
+
+    private static readonly dataCallbackProto = koffi.proto(
+        'void DataCallback(uint8 *data, int length, double timestamp)'
+    )
 
     private static instance?: Libndx
 
@@ -46,6 +51,11 @@ export default class LibndxAdapter implements Libndx {
         const wrap1 = (f: (a: string) => string) => (args: [string]) =>
             f(args[0])
 
+        const wrap2 =
+            (f: (a: string, b: unknown) => string) =>
+            (args: [string, unknown]) =>
+                f(args[0], args[1])
+
         const wrap3 =
             (f: (a: string, b: string, c: string) => string) =>
             (args: [string, string, string]) =>
@@ -55,8 +65,8 @@ export default class LibndxAdapter implements Libndx {
             create_ble_backend: wrap1(
                 lib.func('str create_ble_backend(str config)')
             ),
-            start_ble_backend: wrap1(
-                lib.func('str start_ble_backend(str uuid)')
+            start_ble_backend: wrap2(
+                lib.func('str start_ble_backend(str uuid, DataCallback *cb)')
             ),
             write_ble_characteristic: wrap3(
                 lib.func(
@@ -113,9 +123,13 @@ export default class LibndxAdapter implements Libndx {
         return this.bindings.create_ble_backend([configJson])
     }
 
-    public startBleBackend(options: BleBackendOptions) {
-        const { deviceUuid } = options
-        return this.bindings.start_ble_backend([deviceUuid])
+    public startBleBackend(options: StartBleBackendOptions) {
+        const { deviceUuid, onData } = options
+        const cb = LibndxAdapter.koffiRegister(
+            onData,
+            koffi.pointer(LibndxAdapter.dataCallbackProto)
+        )
+        return this.bindings.start_ble_backend([deviceUuid, cb])
     }
 
     public writeBleCharacteristic(options: BleWriteOptions) {
@@ -166,7 +180,7 @@ export default class LibndxAdapter implements Libndx {
 
 export interface Libndx {
     createBleBackend(options: BleBackendOptions): string
-    startBleBackend(options: BleBackendOptions): string
+    startBleBackend(options: StartBleBackendOptions): string
     writeBleCharacteristic(options: BleWriteOptions): string
     readBleRssi(options: BleBackendOptions): string
     stopBleBackend(options: BleBackendOptions): string
@@ -187,6 +201,10 @@ export interface BleBackendOptions {
     deviceUuid: string
 }
 
+export interface StartBleBackendOptions extends BleBackendOptions {
+    onData: (data: Buffer, timestamp: number) => void
+}
+
 export interface BleWriteOptions {
     deviceUuid: string
     characteristicUuid: string
@@ -199,7 +217,7 @@ export interface FtdiBackendOptions {
 
 export interface LibndxBindings {
     create_ble_backend(args: [string]): string
-    start_ble_backend(args: [string]): string
+    start_ble_backend(args: [string, unknown]): string
     write_ble_characteristic(args: [string, string, string]): string
     read_ble_rssi(args: [string]): string
     stop_ble_backend(args: [string]): string
