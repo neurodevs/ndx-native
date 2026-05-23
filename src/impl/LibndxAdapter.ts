@@ -43,10 +43,8 @@ export default class LibndxAdapter implements Libndx {
     private defineBindings() {
         const lib = LibndxAdapter.koffiLoad(this.libndxPath)
 
-        const wrap1 =
-            (f: (a: string) => string) =>
-            (args: [string]) =>
-                f(args[0])
+        const wrap1 = (f: (a: string) => string) => (args: [string]) =>
+            f(args[0])
 
         const wrap3 =
             (f: (a: string, b: string, c: string) => string) =>

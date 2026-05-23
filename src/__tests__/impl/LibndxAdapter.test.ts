@@ -442,7 +442,9 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                         throw new Error(this.fakeErrorMessage)
                     }
 
-                    const name = sig.match(/\w+\s+(\w+)\s*\(/)![1] as keyof LibndxBindings
+                    const name = sig.match(
+                        /\w+\s+(\w+)\s*\(/
+                    )![1] as keyof LibndxBindings
                     return (...args: string[]) =>
                         this.fakeBindings[name](args as any)
                 },
