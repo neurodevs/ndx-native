@@ -23,8 +23,14 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static readonly ftdiSerialNumber = this.generateId()
 
     private static readonly callsToCreateBle: string[][] = []
-    private static readonly onDataCallback = (_data: Buffer, _timestamp: number) => {}
-    private static readonly callsToStartBle: { uuid: string; onData: (data: Buffer, timestamp: number) => void }[] = []
+    private static readonly onDataCallback = (
+        _data: Buffer,
+        _timestamp: number
+    ) => {}
+    private static readonly callsToStartBle: {
+        uuid: string
+        onData: (data: Buffer, timestamp: number) => void
+    }[] = []
     private static readonly callsToWriteBle: string[][] = []
     private static readonly callsToReadRssi: string[][] = []
     private static readonly callsToStopBle: string[][] = []
@@ -459,7 +465,9 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                         /\w+\s+(\w+)\s*\(/
                     )![1] as keyof LibndxBindings
                     return (...args: unknown[]) =>
-                        (this.fakeBindings[name] as (a: unknown) => string)(args)
+                        (this.fakeBindings[name] as (a: unknown) => string)(
+                            args
+                        )
                 },
             } as any
         }
