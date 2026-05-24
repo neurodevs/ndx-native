@@ -5,9 +5,16 @@ export default class LibndxAdapter implements Libndx {
     public static koffiLoad: typeof koffi.load = koffi.load.bind(koffi)
     public static koffiRegister = koffi.register.bind(koffi)
 
-    private static readonly dataCallbackProto = koffi.proto(
-        'void DataCallback(uint8 *data, int length, double timestamp)'
-    )
+    private static dataCallbackProto: ReturnType<typeof koffi.proto>
+
+    private static getDataCallbackProto() {
+        if (!this.dataCallbackProto) {
+            this.dataCallbackProto = koffi.proto(
+                'void DataCallback(uint8 *data, int length, double timestamp)'
+            )
+        }
+        return this.dataCallbackProto
+    }
 
     private static instance?: Libndx
 
@@ -128,7 +135,7 @@ export default class LibndxAdapter implements Libndx {
 
         const cb = LibndxAdapter.koffiRegister(
             onData,
-            koffi.pointer(LibndxAdapter.dataCallbackProto)
+            koffi.pointer(LibndxAdapter.getDataCallbackProto())
         )
         return this.bindings.start_ble_backend([deviceUuid, cb])
     }
