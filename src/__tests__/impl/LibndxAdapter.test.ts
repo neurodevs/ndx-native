@@ -88,7 +88,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
             this.koffiFuncSignatures,
             [
                 'str create_ble_backend(str config)',
-                'str start_ble_backend(str uuid, DataCallback *cb)',
+                'str start_ble_backend(str uuid, OnDataCallback *cb)',
                 'str write_ble_characteristic(str uuid, str charUuid, str value)',
                 'str read_ble_rssi(str uuid)',
                 'str stop_ble_backend(str uuid)',

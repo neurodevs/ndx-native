@@ -10,7 +10,7 @@ export default class LibndxAdapter implements Libndx {
     private static getDataCallbackProto() {
         if (!this.dataCallbackProto) {
             this.dataCallbackProto = koffi.proto(
-                'void DataCallback(uint8 *data, int length, double timestamp)'
+                'void OnDataCallback(uint8 *data, int length, double timestamp)'
             )
         }
         return this.dataCallbackProto
@@ -53,6 +53,7 @@ export default class LibndxAdapter implements Libndx {
     }
 
     private defineBindings() {
+        LibndxAdapter.getDataCallbackProto()
         const lib = LibndxAdapter.koffiLoad(this.libndxPath)
 
         const wrap1 = (f: (a: string) => string) => (args: [string]) =>
@@ -73,7 +74,7 @@ export default class LibndxAdapter implements Libndx {
                 lib.func('str create_ble_backend(str config)')
             ),
             start_ble_backend: wrap2(
-                lib.func('str start_ble_backend(str uuid, DataCallback *cb)')
+                lib.func('str start_ble_backend(str uuid, OnDataCallback *cb)')
             ),
             write_ble_characteristic: wrap3(
                 lib.func(
