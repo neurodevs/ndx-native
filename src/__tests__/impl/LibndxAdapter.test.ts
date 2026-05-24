@@ -25,11 +25,12 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static readonly callsToCreateBle: string[][] = []
     private static readonly onDataCallback = (
         _data: Buffer,
+        _length: number,
         _timestamp: number
     ) => {}
     private static readonly callsToStartBle: {
         uuid: string
-        onData: (data: Buffer, timestamp: number) => void
+        onData: (data: Buffer, length: number, timestamp: number) => void
     }[] = []
     private static readonly callsToWriteBle: string[][] = []
     private static readonly callsToReadRssi: string[][] = []

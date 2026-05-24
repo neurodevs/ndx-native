@@ -125,6 +125,7 @@ export default class LibndxAdapter implements Libndx {
 
     public startBleBackend(options: StartBleBackendOptions) {
         const { deviceUuid, onData } = options
+
         const cb = LibndxAdapter.koffiRegister(
             onData,
             koffi.pointer(LibndxAdapter.dataCallbackProto)
@@ -202,7 +203,7 @@ export interface BleBackendOptions {
 }
 
 export interface StartBleBackendOptions extends BleBackendOptions {
-    onData: (data: Buffer, timestamp: number) => void
+    onData: (data: Buffer, length: number, timestamp: number) => void
 }
 
 export interface BleWriteOptions {

@@ -1,6 +1,6 @@
 {
   "name": "@neurodevs/ndx-native",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Native Node.js adapters for LSL, XDF, and LabRecorder",
   "type": "module",
   "keywords": [
