@@ -4,12 +4,13 @@ import {
     FtdiBackendOptions,
     Libndx,
     LibndxAdapterOptions,
+    StartBleBackendOptions,
 } from '../../impl/LibndxAdapter.js'
 
 export default class FakeLibndx implements Libndx {
     public static callsToConstructor: (LibndxAdapterOptions | undefined)[] = []
     public static callsToCreateBleBackend: BleBackendOptions[] = []
-    public static callsToStartBleBackend: BleBackendOptions[] = []
+    public static callsToStartBleBackend: StartBleBackendOptions[] = []
     public static callsToWriteBle: BleWriteOptions[] = []
     public static callsToStopBleBacked: BleBackendOptions[] = []
     public static callsToDestroyBleBackend: BleBackendOptions[] = []
@@ -30,7 +31,7 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
-    public startBleBackend(options: BleBackendOptions) {
+    public startBleBackend(options: StartBleBackendOptions) {
         FakeLibndx.callsToStartBleBackend.push(options)
         return FakeLibndx.fakeResult
     }
