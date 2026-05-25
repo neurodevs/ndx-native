@@ -43,7 +43,7 @@
   "devDependencies": {
     "@neurodevs/eslint-config-ndx": "^1.0.1",
     "@neurodevs/generate-id": "^1.1.2",
-    "@neurodevs/node-tdd": "^1.1.2",
+    "@neurodevs/node-tdd": "^3.0.1",
     "@neurodevs/prettier-config-ndx": "^1.0.2",
     "typescript": "^5.9.3"
   },
