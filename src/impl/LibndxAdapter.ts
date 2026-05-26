@@ -2,24 +2,44 @@ import koffi from 'koffi'
 
 export default class LibndxAdapter implements Libndx {
     public static Class?: LibndxConstructor
-    public static koffiLoad: typeof koffi.load = koffi.load.bind(koffi)
+    public static koffiLoad = koffi.load.bind(koffi)
     public static koffiRegister = koffi.register.bind(koffi)
+    public static koffiStruct = koffi.struct.bind(koffi)
+    public static koffiProto = koffi.proto.bind(koffi)
+    public static koffiPointer: typeof koffi.pointer = koffi.pointer.bind(koffi)
 
-    private static dataCallbackProto: ReturnType<typeof koffi.proto>
+    private static charCallbackProto?: ReturnType<typeof koffi.proto>
+    private static charCallbackStruct?: ReturnType<typeof koffi.struct>
 
-    private static getDataCallbackProto() {
-        if (!this.dataCallbackProto) {
-            this.dataCallbackProto = koffi.proto(
-                'void OnDataCallback(uint8 *data, int length, double timestamp)'
+    private static getCharCallbackProto() {
+        if (!this.charCallbackProto) {
+            this.charCallbackProto = LibndxAdapter.koffiProto(
+                'void CharCallbackFn(uint8 *data, int length, double timestamp)'
             )
         }
-        return this.dataCallbackProto
+        return this.charCallbackProto
+    }
+
+    private static getCharCallbackStruct() {
+        if (!this.charCallbackStruct) {
+            this.getCharCallbackProto()
+            this.charCallbackStruct = LibndxAdapter.koffiStruct(
+                'CharCallback',
+                {
+                    charUuid: 'str',
+                    charName: 'str',
+                    onData: LibndxAdapter.koffiPointer(this.charCallbackProto!),
+                }
+            )
+        }
+        return this.charCallbackStruct
     }
 
     private static instance?: Libndx
 
     private libndxPath: string
     private bindings!: LibndxBindings
+    private registeredCallbacks: unknown[] = []
 
     protected constructor(options?: LibndxAdapterOptions) {
         const { libndxPath = '/opt/local/lib/libndx.dylib' } = options ?? {}
@@ -44,6 +64,11 @@ export default class LibndxAdapter implements Libndx {
         delete this.instance
     }
 
+    public static resetKoffiCache() {
+        delete this.charCallbackProto
+        delete this.charCallbackStruct
+    }
+
     private tryToLoadBindings() {
         try {
             this.defineBindings()
@@ -53,28 +78,30 @@ export default class LibndxAdapter implements Libndx {
     }
 
     private defineBindings() {
-        LibndxAdapter.getDataCallbackProto()
+        LibndxAdapter.getCharCallbackStruct()
         const lib = LibndxAdapter.koffiLoad(this.libndxPath)
 
         const wrap1 = (f: (a: string) => string) => (args: [string]) =>
             f(args[0])
-
-        const wrap2 =
-            (f: (a: string, b: unknown) => string) =>
-            (args: [string, unknown]) =>
-                f(args[0], args[1])
 
         const wrap3 =
             (f: (a: string, b: string, c: string) => string) =>
             (args: [string, string, string]) =>
                 f(args[0], args[1], args[2])
 
+        const wrapStartBle =
+            (f: (a: string, b: unknown, c: number) => string) =>
+            (args: [string, unknown, number]) =>
+                f(args[0], args[1], args[2])
+
         this.bindings = {
             create_ble_backend: wrap1(
                 lib.func('str create_ble_backend(str config)')
             ),
-            start_ble_backend: wrap2(
-                lib.func('str start_ble_backend(str uuid, OnDataCallback *cb)')
+            start_ble_backend: wrapStartBle(
+                lib.func(
+                    'str start_ble_backend(str uuid, CharCallback *callbacks, int num_callbacks)'
+                )
             ),
             write_ble_characteristic: wrap3(
                 lib.func(
@@ -133,13 +160,26 @@ export default class LibndxAdapter implements Libndx {
     }
 
     public startBleBackend(options: StartBleBackendOptions) {
-        const { deviceUuid, onData } = options
+        const { deviceUuid, charCallbacks } = options
 
-        const cb = LibndxAdapter.koffiRegister(
-            onData,
-            koffi.pointer(LibndxAdapter.getDataCallbackProto())
+        this.registeredCallbacks = charCallbacks.map(
+            ({ charUuid, charName, onData }) => ({
+                charUuid,
+                charName,
+                onData: LibndxAdapter.koffiRegister(
+                    onData,
+                    LibndxAdapter.koffiPointer(
+                        LibndxAdapter.getCharCallbackProto()!
+                    )
+                ),
+            })
         )
-        return this.bindings.start_ble_backend([deviceUuid, cb])
+
+        return this.bindings.start_ble_backend([
+            deviceUuid,
+            this.registeredCallbacks,
+            this.registeredCallbacks.length,
+        ])
     }
 
     public writeBleCharacteristic(options: BleWriteOptions) {
@@ -214,7 +254,7 @@ export interface BleBackendOptions {
 }
 
 export interface StartBleBackendOptions extends BleBackendOptions {
-    onData: (data: Buffer, length: number, timestamp: number) => void
+    charCallbacks: CharCallback[]
 }
 
 export interface BleWriteOptions {
@@ -223,13 +263,19 @@ export interface BleWriteOptions {
     value: string
 }
 
+export interface CharCallback {
+    charUuid: string
+    charName?: string
+    onData: (data: Buffer, length: number, timestamp: number) => void
+}
+
 export interface FtdiBackendOptions {
     serialNumber: string
 }
 
 export interface LibndxBindings {
     create_ble_backend(args: [string]): string
-    start_ble_backend(args: [string, unknown]): string
+    start_ble_backend(args: [string, unknown, number]): string
     write_ble_characteristic(args: [string, string, string]): string
     read_ble_rssi(args: [string]): string
     stop_ble_backend(args: [string]): string
