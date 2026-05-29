@@ -20,7 +20,7 @@ export default class FakeLibndx implements Libndx {
     public static callsToStopFtdiBackend: FtdiBackendOptions[] = []
     public static callsToDestroyFtdiBackend: FtdiBackendOptions[] = []
 
-    public static fakeResult = ''
+    public static fakeResult = { status: 200 }
 
     public constructor(options?: LibndxAdapterOptions) {
         FakeLibndx.callsToConstructor.push(options)

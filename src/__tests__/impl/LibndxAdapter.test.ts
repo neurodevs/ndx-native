@@ -32,6 +32,8 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         },
     ]
 
+    private static readonly successfulResult = { status: 200 }
+
     private static readonly callsToCreateBle: string[][] = []
     private static readonly callsToStartBle: {
         uuid: string
@@ -150,11 +152,14 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async createBleBackendReturnsJsonString() {
-        const raw = this.createBleBackend()
-        const json = JSON.parse(raw)
+    protected static async createBleBackendReturnsJson() {
+        const json = this.createBleBackend()
 
-        assert.isTruthy(json, 'createBleBackend did not return a JSON string!')
+        assert.isEqualDeep(
+            json,
+            this.successfulResult,
+            'createBleBackend did not return a JSON string!'
+        )
     }
 
     @test()
@@ -175,11 +180,14 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async startBleBackendReturnsJsonString() {
-        const raw = this.startBleBackend()
-        const json = JSON.parse(raw)
+    protected static async startBleBackendReturnsJson() {
+        const json = this.startBleBackend()
 
-        assert.isTruthy(json, 'startBleBackend did not return a JSON string!')
+        assert.isEqualDeep(
+            json,
+            this.successfulResult,
+            'startBleBackend did not return a JSON string!'
+        )
     }
 
     @test()
@@ -198,12 +206,12 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async writeBleCharacteristicReturnsJsonString() {
-        const raw = this.writeBleCharacteristic()
-        const json = JSON.parse(raw)
+    protected static async writeBleCharacteristicReturnsJson() {
+        const json = this.writeBleCharacteristic()
 
-        assert.isTruthy(
+        assert.isEqualDeep(
             json,
+            { status: 200 },
             'writeBleCharacteristic did not return a JSON string!'
         )
     }
@@ -221,10 +229,13 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
 
     @test()
     protected static async getRssiBleBackendReturnsJson() {
-        const raw = this.getRssiBleBackend()
-        const json = JSON.parse(raw)
+        const json = this.getRssiBleBackend()
 
-        assert.isTruthy(json, 'getRssiBleBackend did not return a JSON string!')
+        assert.isEqualDeep(
+            json,
+            this.successfulResult,
+            'getRssiBleBackend did not return a JSON string!'
+        )
     }
 
     @test()
@@ -239,11 +250,14 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async stopBleBackendReturnsJsonString() {
-        const raw = this.stopBleBackend()
-        const json = JSON.parse(raw)
+    protected static async stopBleBackendReturnsJson() {
+        const json = this.stopBleBackend()
 
-        assert.isTruthy(json, 'stopBleBackend did not return a JSON string!')
+        assert.isEqualDeep(
+            json,
+            this.successfulResult,
+            'stopBleBackend did not return a JSON string!'
+        )
     }
 
     @test()
@@ -259,10 +273,13 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
 
     @test()
     protected static async destroyBleBackendReturnsJson() {
-        const raw = this.destroyBleBackend()
-        const json = JSON.parse(raw)
+        const json = this.destroyBleBackend()
 
-        assert.isTruthy(json, 'destroyBleBackend did not return a JSON string!')
+        assert.isEqualDeep(
+            json,
+            this.successfulResult,
+            'destroyBleBackend did not return a JSON string!'
+        )
     }
 
     @test()
@@ -277,11 +294,14 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async createFtdiBackendReturnsJsonString() {
-        const raw = this.createFtdiBackend()
-        const json = JSON.parse(raw)
+    protected static async createFtdiBackendReturnsJson() {
+        const json = this.createFtdiBackend()
 
-        assert.isTruthy(json, 'createFtdiBackend did not return a JSON string!')
+        assert.isEqualDeep(
+            json,
+            this.successfulResult,
+            'createFtdiBackend did not return a JSON string!'
+        )
     }
 
     @test()
@@ -296,11 +316,14 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async startFtdiBackendReturnsJsonString() {
-        const raw = this.startFtdiBackend()
-        const json = JSON.parse(raw)
+    protected static async startFtdiBackendReturnsJson() {
+        const json = this.startFtdiBackend()
 
-        assert.isTruthy(json, 'startFtdiBackend did not return a JSON string!')
+        assert.isEqualDeep(
+            json,
+            this.successfulResult,
+            'startFtdiBackend did not return a JSON string!'
+        )
     }
 
     @test()
@@ -315,11 +338,14 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async stopFtdiBackendReturnsJsonString() {
-        const raw = this.stopFtdiBackend()
-        const json = JSON.parse(raw)
+    protected static async stopFtdiBackendReturnsJson() {
+        const json = this.stopFtdiBackend()
 
-        assert.isTruthy(json, 'stopFtdiBackend did not return a JSON string!')
+        assert.isEqualDeep(
+            json,
+            this.successfulResult,
+            'stopFtdiBackend did not return a JSON string!'
+        )
     }
 
     @test()
@@ -334,12 +360,12 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async destroyFtdiBackendReturnsJsonString() {
-        const raw = this.destroyFtdiBackend()
-        const json = JSON.parse(raw)
+    protected static async destroyFtdiBackendReturnsJson() {
+        const json = this.destroyFtdiBackend()
 
-        assert.isTruthy(
+        assert.isEqualDeep(
             json,
+            this.successfulResult,
             'destroyFtdiBackend did not return a JSON string!'
         )
     }
@@ -411,46 +437,46 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         return {
             create_ble_backend: (args) => {
                 this.callsToCreateBle.push(args)
-                return JSON.stringify({})
+                return JSON.stringify(this.successfulResult)
             },
             start_ble_backend: (args: any) => {
                 this.callsToStartBle.push({
                     uuid: args[0],
                     charCallbacks: args[1],
                 })
-                return JSON.stringify({})
+                return JSON.stringify(this.successfulResult)
             },
             write_ble_characteristic: (args) => {
                 this.callsToWriteBle.push(args)
-                return JSON.stringify({})
+                return JSON.stringify(this.successfulResult)
             },
             read_ble_rssi: (args) => {
                 this.callsToReadRssi.push(args)
-                return JSON.stringify({})
+                return JSON.stringify(this.successfulResult)
             },
             stop_ble_backend: (args) => {
                 this.callsToStopBle.push(args)
-                return JSON.stringify({})
+                return JSON.stringify(this.successfulResult)
             },
             destroy_ble_backend: (args) => {
                 this.callsToDestroyBle.push(args)
-                return JSON.stringify({})
+                return JSON.stringify(this.successfulResult)
             },
             create_ftdi_backend: (args) => {
                 this.callsToCreateFtdi.push(args)
-                return JSON.stringify({})
+                return JSON.stringify(this.successfulResult)
             },
             start_ftdi_backend: (args) => {
                 this.callsToStartFtdi.push(args)
-                return JSON.stringify({})
+                return JSON.stringify(this.successfulResult)
             },
             stop_ftdi_backend: (args) => {
                 this.callsToStopFtdi.push(args)
-                return JSON.stringify({})
+                return JSON.stringify(this.successfulResult)
             },
             destroy_ftdi_backend: (args) => {
                 this.callsToDestroyFtdi.push(args)
-                return JSON.stringify({})
+                return JSON.stringify(this.successfulResult)
             },
         }
     }

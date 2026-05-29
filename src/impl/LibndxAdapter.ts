@@ -156,7 +156,8 @@ export default class LibndxAdapter implements Libndx {
         const { deviceUuid } = options
         const configJson = JSON.stringify({ uuid: deviceUuid })
 
-        return this.bindings.create_ble_backend([configJson])
+        const result = this.bindings.create_ble_backend([configJson])
+        return JSON.parse(result)
     }
 
     public startBleBackend(options: StartBleBackendOptions) {
@@ -175,72 +176,80 @@ export default class LibndxAdapter implements Libndx {
             })
         )
 
-        return this.bindings.start_ble_backend([
+        const result = this.bindings.start_ble_backend([
             deviceUuid,
             this.registeredCallbacks,
             this.registeredCallbacks.length,
         ])
+        return JSON.parse(result)
     }
 
     public writeBleCharacteristic(options: WriteBleCharacteristicOptions) {
         const { deviceUuid, charUuid: characteristicUuid, value } = options
 
-        return this.bindings.write_ble_characteristic([
+        const result = this.bindings.write_ble_characteristic([
             deviceUuid,
             characteristicUuid,
             value,
         ])
+        return JSON.parse(result)
     }
 
     public readBleRssi(options: BleBackendOptions) {
         const { deviceUuid } = options
-        return this.bindings.read_ble_rssi([deviceUuid])
+        const result = this.bindings.read_ble_rssi([deviceUuid])
+        return JSON.parse(result)
     }
 
     public stopBleBackend(options: BleBackendOptions) {
         const { deviceUuid } = options
-        return this.bindings.stop_ble_backend([deviceUuid])
+        const result = this.bindings.stop_ble_backend([deviceUuid])
+        return JSON.parse(result)
     }
 
     public destroyBleBackend(options: BleBackendOptions) {
         const { deviceUuid } = options
-        return this.bindings.destroy_ble_backend([deviceUuid])
+        const result = this.bindings.destroy_ble_backend([deviceUuid])
+        return JSON.parse(result)
     }
 
     public createFtdiBackend(options: FtdiBackendOptions) {
         const { serialNumber } = options
         const configJson = JSON.stringify({ serialNumber })
 
-        return this.bindings.create_ftdi_backend([configJson])
+        const result = this.bindings.create_ftdi_backend([configJson])
+        return JSON.parse(result)
     }
 
     public startFtdiBackend(options: FtdiBackendOptions) {
         const { serialNumber } = options
-        return this.bindings.start_ftdi_backend([serialNumber])
+        return JSON.parse(this.bindings.start_ftdi_backend([serialNumber]))
     }
 
     public stopFtdiBackend(options: FtdiBackendOptions) {
         const { serialNumber } = options
-        return this.bindings.stop_ftdi_backend([serialNumber])
+        const result = this.bindings.stop_ftdi_backend([serialNumber])
+        return JSON.parse(result)
     }
 
     public destroyFtdiBackend(options: FtdiBackendOptions) {
         const { serialNumber } = options
-        return this.bindings.destroy_ftdi_backend([serialNumber])
+        const result = this.bindings.destroy_ftdi_backend([serialNumber])
+        return JSON.parse(result)
     }
 }
 
 export interface Libndx {
-    createBleBackend(options: BleBackendOptions): string
-    startBleBackend(options: StartBleBackendOptions): string
-    writeBleCharacteristic(options: WriteBleCharacteristicOptions): string
-    readBleRssi(options: BleBackendOptions): string
-    stopBleBackend(options: BleBackendOptions): string
-    destroyBleBackend(options: BleBackendOptions): string
-    createFtdiBackend(options: FtdiBackendOptions): string
-    startFtdiBackend(options: FtdiBackendOptions): string
-    stopFtdiBackend(options: FtdiBackendOptions): string
-    destroyFtdiBackend(options: FtdiBackendOptions): string
+    createBleBackend(options: BleBackendOptions): NativeResult
+    startBleBackend(options: StartBleBackendOptions): NativeResult
+    writeBleCharacteristic(options: WriteBleCharacteristicOptions): NativeResult
+    readBleRssi(options: BleBackendOptions): NativeResult
+    stopBleBackend(options: BleBackendOptions): NativeResult
+    destroyBleBackend(options: BleBackendOptions): NativeResult
+    createFtdiBackend(options: FtdiBackendOptions): NativeResult
+    startFtdiBackend(options: FtdiBackendOptions): NativeResult
+    stopFtdiBackend(options: FtdiBackendOptions): NativeResult
+    destroyFtdiBackend(options: FtdiBackendOptions): NativeResult
 }
 
 export type LibndxConstructor = new (options?: LibndxAdapterOptions) => Libndx
@@ -284,4 +293,9 @@ export interface LibndxBindings {
     start_ftdi_backend(args: [string]): string
     stop_ftdi_backend(args: [string]): string
     destroy_ftdi_backend(args: [string]): string
+}
+
+export interface NativeResult {
+    status: number
+    error?: string
 }
