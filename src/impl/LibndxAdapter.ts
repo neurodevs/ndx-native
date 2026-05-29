@@ -156,8 +156,7 @@ export default class LibndxAdapter implements Libndx {
         const { deviceUuid } = options
         const configJson = JSON.stringify({ uuid: deviceUuid })
 
-        const result = this.bindings.create_ble_backend([configJson])
-        return JSON.parse(result)
+        return JSON.parse(this.bindings.create_ble_backend([configJson]))
     }
 
     public startBleBackend(options: StartBleBackendOptions) {
@@ -176,49 +175,47 @@ export default class LibndxAdapter implements Libndx {
             })
         )
 
-        const result = this.bindings.start_ble_backend([
-            deviceUuid,
-            this.registeredCallbacks,
-            this.registeredCallbacks.length,
-        ])
-        return JSON.parse(result)
+        return JSON.parse(
+            this.bindings.start_ble_backend([
+                deviceUuid,
+                this.registeredCallbacks,
+                this.registeredCallbacks.length,
+            ])
+        )
     }
 
     public writeBleCharacteristic(options: WriteBleCharacteristicOptions) {
         const { deviceUuid, charUuid: characteristicUuid, value } = options
 
-        const result = this.bindings.write_ble_characteristic([
-            deviceUuid,
-            characteristicUuid,
-            value,
-        ])
-        return JSON.parse(result)
+        return JSON.parse(
+            this.bindings.write_ble_characteristic([
+                deviceUuid,
+                characteristicUuid,
+                value,
+            ])
+        )
     }
 
     public readBleRssi(options: BleBackendOptions) {
         const { deviceUuid } = options
-        const result = this.bindings.read_ble_rssi([deviceUuid])
-        return JSON.parse(result)
+        return JSON.parse(this.bindings.read_ble_rssi([deviceUuid]))
     }
 
     public stopBleBackend(options: BleBackendOptions) {
         const { deviceUuid } = options
-        const result = this.bindings.stop_ble_backend([deviceUuid])
-        return JSON.parse(result)
+        return JSON.parse(this.bindings.stop_ble_backend([deviceUuid]))
     }
 
     public destroyBleBackend(options: BleBackendOptions) {
         const { deviceUuid } = options
-        const result = this.bindings.destroy_ble_backend([deviceUuid])
-        return JSON.parse(result)
+        return JSON.parse(this.bindings.destroy_ble_backend([deviceUuid]))
     }
 
     public createFtdiBackend(options: FtdiBackendOptions) {
         const { serialNumber } = options
         const configJson = JSON.stringify({ serialNumber })
 
-        const result = this.bindings.create_ftdi_backend([configJson])
-        return JSON.parse(result)
+        return JSON.parse(this.bindings.create_ftdi_backend([configJson]))
     }
 
     public startFtdiBackend(options: FtdiBackendOptions) {
@@ -228,14 +225,12 @@ export default class LibndxAdapter implements Libndx {
 
     public stopFtdiBackend(options: FtdiBackendOptions) {
         const { serialNumber } = options
-        const result = this.bindings.stop_ftdi_backend([serialNumber])
-        return JSON.parse(result)
+        return JSON.parse(this.bindings.stop_ftdi_backend([serialNumber]))
     }
 
     public destroyFtdiBackend(options: FtdiBackendOptions) {
         const { serialNumber } = options
-        const result = this.bindings.destroy_ftdi_backend([serialNumber])
-        return JSON.parse(result)
+        return JSON.parse(this.bindings.destroy_ftdi_backend([serialNumber]))
     }
 }
 
