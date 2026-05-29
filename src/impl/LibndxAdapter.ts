@@ -182,8 +182,8 @@ export default class LibndxAdapter implements Libndx {
         ])
     }
 
-    public writeBleCharacteristic(options: BleWriteOptions) {
-        const { deviceUuid, characteristicUuid, value } = options
+    public writeBleCharacteristic(options: WriteBleCharacteristicOptions) {
+        const { deviceUuid, charUuid: characteristicUuid, value } = options
 
         return this.bindings.write_ble_characteristic([
             deviceUuid,
@@ -233,7 +233,7 @@ export default class LibndxAdapter implements Libndx {
 export interface Libndx {
     createBleBackend(options: BleBackendOptions): string
     startBleBackend(options: StartBleBackendOptions): string
-    writeBleCharacteristic(options: BleWriteOptions): string
+    writeBleCharacteristic(options: WriteBleCharacteristicOptions): string
     readBleRssi(options: BleBackendOptions): string
     stopBleBackend(options: BleBackendOptions): string
     destroyBleBackend(options: BleBackendOptions): string
@@ -254,16 +254,16 @@ export interface BleBackendOptions {
 }
 
 export interface StartBleBackendOptions extends BleBackendOptions {
-    charCallbacks: CharCallback[]
+    charCallbacks: CharacteristicCallback[]
 }
 
-export interface BleWriteOptions {
+export interface WriteBleCharacteristicOptions {
     deviceUuid: string
-    characteristicUuid: string
+    charUuid: string
     value: string
 }
 
-export interface CharCallback {
+export interface CharacteristicCallback {
     charUuid: string
     charName?: string
     onData: (data: Buffer, length: number, timestamp: number) => void

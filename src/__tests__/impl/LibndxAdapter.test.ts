@@ -1,7 +1,7 @@
 import { test, assert } from '@neurodevs/node-tdd'
 
 import LibndxAdapter, {
-    CharCallback,
+    CharacteristicCallback,
     Libndx,
     LibndxBindings,
 } from '../../impl/LibndxAdapter.js'
@@ -35,7 +35,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static readonly callsToCreateBle: string[][] = []
     private static readonly callsToStartBle: {
         uuid: string
-        charCallbacks: CharCallback[]
+        charCallbacks: CharacteristicCallback[]
     }[] = []
     private static readonly callsToWriteBle: string[][] = []
     private static readonly callsToReadRssi: string[][] = []
@@ -360,7 +360,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static writeBleCharacteristic() {
         return this.instance.writeBleCharacteristic({
             deviceUuid: this.bleDeviceUuid,
-            characteristicUuid: this.bleCharacteristicUuid,
+            charUuid: this.bleCharacteristicUuid,
             value: this.bleValueToWrite,
         })
     }

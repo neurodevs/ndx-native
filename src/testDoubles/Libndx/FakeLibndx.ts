@@ -1,6 +1,6 @@
 import {
     BleBackendOptions,
-    BleWriteOptions,
+    WriteBleCharacteristicOptions,
     FtdiBackendOptions,
     Libndx,
     LibndxAdapterOptions,
@@ -11,7 +11,7 @@ export default class FakeLibndx implements Libndx {
     public static callsToConstructor: (LibndxAdapterOptions | undefined)[] = []
     public static callsToCreateBleBackend: BleBackendOptions[] = []
     public static callsToStartBleBackend: StartBleBackendOptions[] = []
-    public static callsToWriteBle: BleWriteOptions[] = []
+    public static callsToWriteBle: WriteBleCharacteristicOptions[] = []
     public static callsToStopBleBacked: BleBackendOptions[] = []
     public static callsToDestroyBleBackend: BleBackendOptions[] = []
     public static callsToGetRssiBleBackend: BleBackendOptions[] = []
@@ -36,7 +36,7 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
-    public writeBleCharacteristic(options: BleWriteOptions) {
+    public writeBleCharacteristic(options: WriteBleCharacteristicOptions) {
         FakeLibndx.callsToWriteBle.push(options)
         return FakeLibndx.fakeResult
     }
