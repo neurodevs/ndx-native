@@ -5,6 +5,7 @@ import {
     Libndx,
     LibndxAdapterOptions,
     StartBleBackendOptions,
+    NativeResult,
 } from '../../impl/LibndxAdapter.js'
 
 export default class FakeLibndx implements Libndx {
@@ -20,7 +21,7 @@ export default class FakeLibndx implements Libndx {
     public static callsToStopFtdiBackend: FtdiBackendOptions[] = []
     public static callsToDestroyFtdiBackend: FtdiBackendOptions[] = []
 
-    public static fakeResult = { status: 200 }
+    public static fakeResult: NativeResult = { status: 200 }
 
     public constructor(options?: LibndxAdapterOptions) {
         FakeLibndx.callsToConstructor.push(options)
