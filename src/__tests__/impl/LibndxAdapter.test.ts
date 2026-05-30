@@ -42,12 +42,10 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static readonly callsToWriteBle: string[][] = []
     private static readonly callsToReadRssi: string[][] = []
     private static readonly callsToStopBle: string[][] = []
-    private static readonly callsToDestroyBle: string[][] = []
 
     private static readonly callsToCreateFtdi: string[][] = []
     private static readonly callsToStartFtdi: string[][] = []
     private static readonly callsToStopFtdi: string[][] = []
-    private static readonly callsToDestroyFtdi: string[][] = []
 
     protected static async beforeEach() {
         await super.beforeEach()
@@ -100,11 +98,9 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 'str write_ble_characteristic(str uuid, str charUuid, str value)',
                 'str read_ble_rssi(str uuid)',
                 'str stop_ble_backend(str uuid)',
-                'str destroy_ble_backend(str uuid)',
                 'str create_ftdi_backend(str config)',
                 'str start_ftdi_backend(str serial)',
                 'str stop_ftdi_backend(str serial)',
-                'str destroy_ftdi_backend(str serial)',
             ],
             'Did not register expected koffi func signatures!'
         )
@@ -261,28 +257,6 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async destroyBleBackendCallsBindingWithExpectedArgs() {
-        this.destroyBleBackend()
-
-        assert.isEqual(
-            this.callsToDestroyBle[0][0],
-            this.bleDeviceUuid,
-            'destroyBleBackend did not call binding with expected args!'
-        )
-    }
-
-    @test()
-    protected static async destroyBleBackendReturnsJson() {
-        const json = this.destroyBleBackend()
-
-        assert.isEqualDeep(
-            json,
-            this.successfulResult,
-            'destroyBleBackend did not return a JSON string!'
-        )
-    }
-
-    @test()
     protected static async createFtdiBackendCallsBindingWithExpectedArgs() {
         this.createFtdiBackend()
 
@@ -348,28 +322,6 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         )
     }
 
-    @test()
-    protected static async destroyFtdiBackendCallsBindingWithExpectedArgs() {
-        this.destroyFtdiBackend()
-
-        assert.isEqual(
-            this.callsToDestroyFtdi[0][0],
-            this.ftdiSerialNumber,
-            'destroyFtdiBackend did not call binding with expected args!'
-        )
-    }
-
-    @test()
-    protected static async destroyFtdiBackendReturnsJson() {
-        const json = this.destroyFtdiBackend()
-
-        assert.isEqualDeep(
-            json,
-            this.successfulResult,
-            'destroyFtdiBackend did not return a JSON string!'
-        )
-    }
-
     private static createBleBackend() {
         return this.instance.createBleBackend({
             deviceUuid: this.bleDeviceUuid,
@@ -397,12 +349,6 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
     }
 
-    private static destroyBleBackend() {
-        return this.instance.destroyBleBackend({
-            deviceUuid: this.bleDeviceUuid,
-        })
-    }
-
     private static getRssiBleBackend() {
         return this.instance.readBleRssi({
             deviceUuid: this.bleDeviceUuid,
@@ -423,12 +369,6 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
 
     private static stopFtdiBackend() {
         return this.instance.stopFtdiBackend({
-            serialNumber: this.ftdiSerialNumber,
-        })
-    }
-
-    private static destroyFtdiBackend() {
-        return this.instance.destroyFtdiBackend({
             serialNumber: this.ftdiSerialNumber,
         })
     }
@@ -458,10 +398,6 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 this.callsToStopBle.push(args)
                 return JSON.stringify(this.successfulResult)
             },
-            destroy_ble_backend: (args) => {
-                this.callsToDestroyBle.push(args)
-                return JSON.stringify(this.successfulResult)
-            },
             create_ftdi_backend: (args) => {
                 this.callsToCreateFtdi.push(args)
                 return JSON.stringify(this.successfulResult)
@@ -474,10 +410,6 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 this.callsToStopFtdi.push(args)
                 return JSON.stringify(this.successfulResult)
             },
-            destroy_ftdi_backend: (args) => {
-                this.callsToDestroyFtdi.push(args)
-                return JSON.stringify(this.successfulResult)
-            },
         }
     }
 
@@ -485,12 +417,10 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         this.callsToCreateBle.length = 0
         this.callsToStartBle.length = 0
         this.callsToStopBle.length = 0
-        this.callsToDestroyBle.length = 0
         this.callsToReadRssi.length = 0
         this.callsToCreateFtdi.length = 0
         this.callsToStartFtdi.length = 0
         this.callsToStopFtdi.length = 0
-        this.callsToDestroyFtdi.length = 0
     }
 
     private static clearAndFakeFfi() {

@@ -14,12 +14,10 @@ export default class FakeLibndx implements Libndx {
     public static callsToStartBleBackend: StartBleBackendOptions[] = []
     public static callsToWriteBle: WriteBleCharacteristicOptions[] = []
     public static callsToStopBleBacked: BleBackendOptions[] = []
-    public static callsToDestroyBleBackend: BleBackendOptions[] = []
     public static callsToGetRssiBleBackend: BleBackendOptions[] = []
     public static callsToCreateFtdiBackend: FtdiBackendOptions[] = []
     public static callsToStartFtdiBackend: FtdiBackendOptions[] = []
     public static callsToStopFtdiBackend: FtdiBackendOptions[] = []
-    public static callsToDestroyFtdiBackend: FtdiBackendOptions[] = []
 
     public static fakeResult: NativeResult = { status: 200 }
 
@@ -52,11 +50,6 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
-    public destroyBleBackend(options: BleBackendOptions) {
-        FakeLibndx.callsToDestroyBleBackend.push(options)
-        return FakeLibndx.fakeResult
-    }
-
     public createFtdiBackend(options: FtdiBackendOptions) {
         FakeLibndx.callsToCreateFtdiBackend.push(options)
         return FakeLibndx.fakeResult
@@ -72,11 +65,6 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
-    public destroyFtdiBackend(options: FtdiBackendOptions) {
-        FakeLibndx.callsToDestroyFtdiBackend.push(options)
-        return FakeLibndx.fakeResult
-    }
-
     public static resetTestDouble() {
         FakeLibndx.callsToConstructor = []
         FakeLibndx.callsToCreateBleBackend = []
@@ -84,10 +72,8 @@ export default class FakeLibndx implements Libndx {
         FakeLibndx.callsToWriteBle = []
         FakeLibndx.callsToStopBleBacked = []
         FakeLibndx.callsToGetRssiBleBackend = []
-        FakeLibndx.callsToDestroyBleBackend = []
         FakeLibndx.callsToCreateFtdiBackend = []
         FakeLibndx.callsToStartFtdiBackend = []
         FakeLibndx.callsToStopFtdiBackend = []
-        FakeLibndx.callsToDestroyFtdiBackend = []
     }
 }
