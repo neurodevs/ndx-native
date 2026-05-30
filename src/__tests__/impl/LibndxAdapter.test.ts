@@ -37,6 +37,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static readonly callsToCreateBle: string[][] = []
     private static readonly callsToStartBle: {
         uuid: string
+        onConnected: unknown
         charCallbacks: CharacteristicCallback[]
     }[] = []
     private static readonly callsToWriteBle: string[][] = []
@@ -94,7 +95,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
             this.koffiFuncSignatures,
             [
                 'str create_ble_backend(str config)',
-                'str start_ble_backend(str uuid, CharCallback *callbacks, int num_callbacks)',
+                'str start_ble_backend(str uuid, OnConnectedFn *on_connected, CharCallback *callbacks, int num_callbacks)',
                 'str write_ble_characteristic(str uuid, str charUuid, str value)',
                 'str read_ble_rssi(str uuid)',
                 'str stop_ble_backend(str uuid)',
@@ -167,6 +168,8 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
             this.bleDeviceUuid,
             'startBleBackend did not pass expected uuid to binding!'
         )
+
+        debugger
 
         assert.isEqualDeep(
             this.callsToStartBle[0].charCallbacks,
@@ -331,6 +334,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static startBleBackend() {
         return this.instance.startBleBackend({
             deviceUuid: this.bleDeviceUuid,
+            onConnected: () => {},
             charCallbacks: this.charCallbacks,
         })
     }
@@ -382,7 +386,8 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
             start_ble_backend: (args: any) => {
                 this.callsToStartBle.push({
                     uuid: args[0],
-                    charCallbacks: args[1],
+                    onConnected: args[1],
+                    charCallbacks: args[2],
                 })
                 return JSON.stringify(this.successfulResult)
             },

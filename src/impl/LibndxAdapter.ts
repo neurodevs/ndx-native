@@ -10,6 +10,7 @@ export default class LibndxAdapter implements Libndx {
 
     private static charCallbackProto?: ReturnType<typeof koffi.proto>
     private static charCallbackStruct?: ReturnType<typeof koffi.struct>
+    private static onConnectedProto?: ReturnType<typeof koffi.proto>
 
     private static getCharCallbackProto() {
         if (!this.charCallbackProto) {
@@ -18,6 +19,15 @@ export default class LibndxAdapter implements Libndx {
             )
         }
         return this.charCallbackProto
+    }
+
+    private static getOnConnectedProto() {
+        if (!this.onConnectedProto) {
+            this.onConnectedProto = LibndxAdapter.koffiProto(
+                'void OnConnectedFn()'
+            )
+        }
+        return this.onConnectedProto
     }
 
     private static getCharCallbackStruct() {
@@ -67,6 +77,7 @@ export default class LibndxAdapter implements Libndx {
     public static resetKoffiCache() {
         delete this.charCallbackProto
         delete this.charCallbackStruct
+        delete this.onConnectedProto
     }
 
     private tryToLoadBindings() {
@@ -79,6 +90,7 @@ export default class LibndxAdapter implements Libndx {
 
     private defineBindings() {
         LibndxAdapter.getCharCallbackStruct()
+        LibndxAdapter.getOnConnectedProto()
         const lib = LibndxAdapter.koffiLoad(this.libndxPath)
 
         const wrap1 = (f: (a: string) => string) => (args: [string]) =>
@@ -90,9 +102,9 @@ export default class LibndxAdapter implements Libndx {
                 f(args[0], args[1], args[2])
 
         const wrapStartBle =
-            (f: (a: string, b: unknown, c: number) => string) =>
-            (args: [string, unknown, number]) =>
-                f(args[0], args[1], args[2])
+            (f: (a: string, b: unknown, c: unknown, d: number) => string) =>
+            (args: [string, unknown, unknown, number]) =>
+                f(args[0], args[1], args[2], args[3])
 
         this.bindings = {
             create_ble_backend: wrap1(
@@ -100,7 +112,7 @@ export default class LibndxAdapter implements Libndx {
             ),
             start_ble_backend: wrapStartBle(
                 lib.func(
-                    'str start_ble_backend(str uuid, CharCallback *callbacks, int num_callbacks)'
+                    'str start_ble_backend(str uuid, OnConnectedFn *on_connected, CharCallback *callbacks, int num_callbacks)'
                 )
             ),
             write_ble_characteristic: wrap3(
@@ -154,7 +166,12 @@ export default class LibndxAdapter implements Libndx {
     }
 
     public startBleBackend(options: StartBleBackendOptions) {
-        const { deviceUuid, charCallbacks } = options
+        const { deviceUuid, onConnected, charCallbacks } = options
+
+        const registeredOnConnected = LibndxAdapter.koffiRegister(
+            onConnected,
+            LibndxAdapter.koffiPointer(LibndxAdapter.getOnConnectedProto()!)
+        )
 
         this.registeredCallbacks = charCallbacks.map(
             ({ charUuid, charName, onData }) => ({
@@ -172,6 +189,7 @@ export default class LibndxAdapter implements Libndx {
         return JSON.parse(
             this.bindings.start_ble_backend([
                 deviceUuid,
+                registeredOnConnected,
                 this.registeredCallbacks,
                 this.registeredCallbacks.length,
             ])
@@ -240,6 +258,7 @@ export interface BleBackendOptions {
 }
 
 export interface StartBleBackendOptions extends BleBackendOptions {
+    onConnected: (peripheral: NativePeripheral) => void
     charCallbacks: CharacteristicCallback[]
 }
 
@@ -261,13 +280,18 @@ export interface FtdiBackendOptions {
 
 export interface LibndxBindings {
     create_ble_backend(args: [string]): string
-    start_ble_backend(args: [string, unknown, number]): string
+    start_ble_backend(args: [string, unknown, unknown, number]): string
     write_ble_characteristic(args: [string, string, string]): string
     read_ble_rssi(args: [string]): string
     stop_ble_backend(args: [string]): string
     create_ftdi_backend(args: [string]): string
     start_ftdi_backend(args: [string]): string
     stop_ftdi_backend(args: [string]): string
+}
+
+export interface NativePeripheral {
+    uuid: string
+    name: string
 }
 
 export interface NativeResult {
