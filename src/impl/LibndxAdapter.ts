@@ -11,6 +11,7 @@ export default class LibndxAdapter implements Libndx {
     private static charCallbackProto?: ReturnType<typeof koffi.proto>
     private static charCallbackStruct?: ReturnType<typeof koffi.struct>
     private static onConnectedProto?: ReturnType<typeof koffi.proto>
+    private static peripheralStruct?: ReturnType<typeof koffi.struct>
 
     private static getCharCallbackProto() {
         if (!this.charCallbackProto) {
@@ -21,10 +22,21 @@ export default class LibndxAdapter implements Libndx {
         return this.charCallbackProto
     }
 
+    private static getPeripheralStruct() {
+        if (!this.peripheralStruct) {
+            this.peripheralStruct = LibndxAdapter.koffiStruct('Peripheral', {
+                uuid: 'str',
+                name: 'str',
+            })
+        }
+        return this.peripheralStruct
+    }
+
     private static getOnConnectedProto() {
         if (!this.onConnectedProto) {
+            this.getPeripheralStruct()
             this.onConnectedProto = LibndxAdapter.koffiProto(
-                'void OnConnectedFn()'
+                'void OnConnectedFn(Peripheral *peripheral)'
             )
         }
         return this.onConnectedProto
@@ -78,6 +90,7 @@ export default class LibndxAdapter implements Libndx {
         delete this.charCallbackProto
         delete this.charCallbackStruct
         delete this.onConnectedProto
+        delete this.peripheralStruct
     }
 
     private tryToLoadBindings() {
@@ -89,8 +102,8 @@ export default class LibndxAdapter implements Libndx {
     }
 
     private defineBindings() {
-        LibndxAdapter.getCharCallbackStruct()
         LibndxAdapter.getOnConnectedProto()
+        LibndxAdapter.getCharCallbackStruct()
         const lib = LibndxAdapter.koffiLoad(this.libndxPath)
 
         const wrap1 = (f: (a: string) => string) => (args: [string]) =>

@@ -5,6 +5,7 @@ import LibndxAdapter, {
     Libndx,
     LibndxBindings,
 } from '../../impl/LibndxAdapter.js'
+import type { NativePeripheral } from '../../impl/LibndxAdapter.js'
 import AbstractPackageTest from '../AbstractPackageTest.js'
 import FakeLibndx from '../../testDoubles/Libndx/FakeLibndx.js'
 
@@ -113,6 +114,13 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
             this.koffiStructCalls,
             [
                 {
+                    name: 'Peripheral',
+                    fields: {
+                        uuid: 'str',
+                        name: 'str',
+                    },
+                },
+                {
                     name: 'CharCallback',
                     fields: {
                         charUuid: 'str',
@@ -121,7 +129,29 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                     },
                 },
             ],
-            'Did not register CharCallback struct with expected fields!'
+            'Did not register Peripheral and CharCallback structs with expected fields!'
+        )
+    }
+
+    @test()
+    protected static async onConnectedReceivesPeripheral() {
+        let received: NativePeripheral | undefined = undefined
+
+        this.startBleBackend((peripheral: NativePeripheral) => {
+            received = peripheral
+        })
+
+        const peripheral = { uuid: this.generateId(), name: 'Muse-1234' }
+
+        const registeredOnConnected = this.callsToStartBle[0].onConnected as (
+            p: NativePeripheral
+        ) => void
+        registeredOnConnected(peripheral)
+
+        assert.isEqualDeep(
+            received,
+            peripheral,
+            'onConnected was not called with the peripheral!'
         )
     }
 
@@ -331,10 +361,12 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
     }
 
-    private static startBleBackend() {
+    private static startBleBackend(
+        onConnected?: (peripheral: NativePeripheral) => void
+    ) {
         return this.instance.startBleBackend({
             deviceUuid: this.bleDeviceUuid,
-            onConnected: () => {},
+            onConnected: onConnected || (() => {}),
             charCallbacks: this.charCallbacks,
         })
     }
