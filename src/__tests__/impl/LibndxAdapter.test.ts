@@ -17,11 +17,13 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
 
     private static koffiLoadPath?: string
     private static koffiFuncSignatures?: string[]
+    private static koffiProtoCalls?: string[]
     private static koffiStructCalls?: { name: string; fields: object }[]
 
     private static readonly bleDeviceUuid = this.generateId()
     private static readonly bleCharacteristicUuid = this.generateId()
     private static readonly bleValueToWrite = this.generateId()
+    private static readonly bleRssiIntervalMs = Math.random()
 
     private static readonly ftdiSerialNumber = this.generateId()
 
@@ -42,7 +44,11 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         charCallbacks: CharacteristicCallback[]
     }[] = []
     private static readonly callsToWriteBle: string[][] = []
-    private static readonly callsToReadRssi: string[][] = []
+    private static readonly callsToSetBleRssiInterval: {
+        uuid: string
+        intervalMs: number
+        onRssi: unknown
+    }[] = []
     private static readonly callsToStopBle: string[][] = []
 
     private static readonly callsToCreateFtdi: string[][] = []
@@ -98,7 +104,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 'str create_ble_backend(str config)',
                 'str start_ble_backend(str uuid, OnConnectedFn *on_connected, CharCallback *callbacks, int num_callbacks)',
                 'str write_ble_characteristic(str uuid, str charUuid, str value)',
-                'str read_ble_rssi(str uuid)',
+                'str set_ble_rssi_interval(str uuid, int interval_ms, OnRssiFn *on_rssi)',
                 'str stop_ble_backend(str uuid)',
                 'str create_ftdi_backend(str config)',
                 'str start_ftdi_backend(str serial)',
@@ -130,6 +136,26 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 },
             ],
             'Did not register Peripheral and CharCallback structs with expected fields!'
+        )
+    }
+
+    @test()
+    protected static async registersOnRssiProtoBeforeLoadingBindings() {
+        const onRssiProtoIdx = this.koffiProtoCalls!.findIndex((s) =>
+            s.includes('OnRssiFn')
+        )
+        const firstFuncIdx = this.koffiFuncSignatures!.findIndex((s) =>
+            s.includes('OnRssiFn')
+        )
+        assert.isAbove(
+            onRssiProtoIdx,
+            -1,
+            'Did not register OnRssiFn proto before loading bindings!'
+        )
+        assert.isBelow(
+            onRssiProtoIdx,
+            firstFuncIdx + this.koffiProtoCalls!.length,
+            'OnRssiFn proto must be registered before bindings are loaded!'
         )
     }
 
@@ -246,25 +272,50 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async getRssiBleBackendCallsBindingWithExpectedArgs() {
-        this.getRssiBleBackend()
+    protected static async setBleRssiIntervalCallsBindingWithExpectedArgs() {
+        this.setBleRssiInterval()
 
-        assert.isEqual(
-            this.callsToReadRssi[0][0],
-            this.bleDeviceUuid,
-            'getRssiBleBackend did not call binding with expected args!'
+        const { uuid, intervalMs } = this.callsToSetBleRssiInterval[0]
+
+        assert.isEqualDeep(
+            { uuid, intervalMs },
+            {
+                uuid: this.bleDeviceUuid,
+                intervalMs: this.bleRssiIntervalMs,
+            },
+            'setBleRssiInterval did not call binding with expected args!'
+        )
+
+        assert.isFunction(
+            this.callsToSetBleRssiInterval[0].onRssi,
+            'setBleRssiInterval did not pass an onRssi callback to the binding!'
         )
     }
 
     @test()
-    protected static async getRssiBleBackendReturnsJson() {
-        const json = this.getRssiBleBackend()
+    protected static async setBleRssiIntervalReturnsJson() {
+        const json = this.setBleRssiInterval()
 
         assert.isEqualDeep(
             json,
             this.successfulResult,
-            'getRssiBleBackend did not return a JSON string!'
+            'setBleRssiInterval did not return a JSON string!'
         )
+    }
+
+    @test()
+    protected static async setBleRssiIntervalInvokesOnRssiWithRssiValue() {
+        let received: number | undefined
+
+        this.setBleRssiInterval((rssi: number) => {
+            received = rssi
+        })
+
+        const registeredOnRssi = this.callsToSetBleRssiInterval[0]
+            .onRssi as (rssi: number) => void
+        registeredOnRssi(-72)
+
+        assert.isEqual(received, -72, 'onRssi was not invoked with rssi value!')
     }
 
     @test()
@@ -385,9 +436,11 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
     }
 
-    private static getRssiBleBackend() {
-        return this.instance.readBleRssi({
+    private static setBleRssiInterval(onRssi?: (rssi: number) => void) {
+        return this.instance.setBleRssiInterval({
             deviceUuid: this.bleDeviceUuid,
+            intervalMs: this.bleRssiIntervalMs,
+            onRssi: onRssi ?? (() => {}),
         })
     }
 
@@ -427,8 +480,12 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 this.callsToWriteBle.push(args)
                 return JSON.stringify(this.successfulResult)
             },
-            read_ble_rssi: (args) => {
-                this.callsToReadRssi.push(args)
+            set_ble_rssi_interval: (args) => {
+                this.callsToSetBleRssiInterval.push({
+                    uuid: args[0],
+                    intervalMs: args[1],
+                    onRssi: args[2],
+                })
                 return JSON.stringify(this.successfulResult)
             },
             stop_ble_backend: (args) => {
@@ -454,7 +511,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         this.callsToCreateBle.length = 0
         this.callsToStartBle.length = 0
         this.callsToStopBle.length = 0
-        this.callsToReadRssi.length = 0
+        this.callsToSetBleRssiInterval.length = 0
         this.callsToCreateFtdi.length = 0
         this.callsToStartFtdi.length = 0
         this.callsToStopFtdi.length = 0
@@ -463,6 +520,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static clearAndFakeFfi() {
         delete this.koffiLoadPath
         this.koffiFuncSignatures = []
+        this.koffiProtoCalls = []
         this.koffiStructCalls = []
         LibndxAdapter.resetKoffiCache()
         this.fakeKoffiLoad()
@@ -481,7 +539,10 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     private static fakeKoffiProto() {
-        LibndxAdapter.koffiProto = (() => ({})) as any
+        LibndxAdapter.koffiProto = ((sig: string) => {
+            this.koffiProtoCalls!.push(sig)
+            return {} as any
+        }) as any
     }
 
     private static fakeKoffiStruct() {

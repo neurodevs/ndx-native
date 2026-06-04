@@ -6,15 +6,17 @@ import {
     LibndxAdapterOptions,
     StartBleBackendOptions,
     NativeResult,
+    BleRssiOptions,
 } from '../../impl/LibndxAdapter.js'
 
 export default class FakeLibndx implements Libndx {
     public static callsToConstructor: (LibndxAdapterOptions | undefined)[] = []
     public static callsToCreateBleBackend: BleBackendOptions[] = []
     public static callsToStartBleBackend: StartBleBackendOptions[] = []
-    public static callsToWriteBleCharacteristic: WriteBleCharacteristicOptions[] = []
+    public static callsToWriteBleCharacteristic: WriteBleCharacteristicOptions[] =
+        []
     public static callsToStopBleBackend: BleBackendOptions[] = []
-    public static callsToReadBleRssi: BleBackendOptions[] = []
+    public static callsToSetBleRssiInterval: BleRssiOptions[] = []
     public static callsToCreateFtdiBackend: FtdiBackendOptions[] = []
     public static callsToStartFtdiBackend: FtdiBackendOptions[] = []
     public static callsToStopFtdiBackend: FtdiBackendOptions[] = []
@@ -40,8 +42,8 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
-    public readBleRssi(options: BleBackendOptions) {
-        FakeLibndx.callsToReadBleRssi.push(options)
+    public setBleRssiInterval(options: BleRssiOptions) {
+        FakeLibndx.callsToSetBleRssiInterval.push(options)
         return FakeLibndx.fakeResult
     }
 
@@ -71,7 +73,7 @@ export default class FakeLibndx implements Libndx {
         FakeLibndx.callsToStartBleBackend = []
         FakeLibndx.callsToWriteBleCharacteristic = []
         FakeLibndx.callsToStopBleBackend = []
-        FakeLibndx.callsToReadBleRssi = []
+        FakeLibndx.callsToSetBleRssiInterval = []
         FakeLibndx.callsToCreateFtdiBackend = []
         FakeLibndx.callsToStartFtdiBackend = []
         FakeLibndx.callsToStopFtdiBackend = []

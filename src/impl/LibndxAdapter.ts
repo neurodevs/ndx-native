@@ -11,6 +11,7 @@ export default class LibndxAdapter implements Libndx {
     private static charCallbackProto?: ReturnType<typeof koffi.proto>
     private static charCallbackStruct?: ReturnType<typeof koffi.struct>
     private static onConnectedProto?: ReturnType<typeof koffi.proto>
+    private static onRssiProto?: ReturnType<typeof koffi.proto>
     private static peripheralStruct?: ReturnType<typeof koffi.struct>
 
     private static getCharCallbackProto() {
@@ -40,6 +41,13 @@ export default class LibndxAdapter implements Libndx {
             )
         }
         return this.onConnectedProto
+    }
+
+    private static getOnRssiProto() {
+        if (!this.onRssiProto) {
+            this.onRssiProto = LibndxAdapter.koffiProto('void OnRssiFn(int rssi)')
+        }
+        return this.onRssiProto
     }
 
     private static getCharCallbackStruct() {
@@ -90,6 +98,7 @@ export default class LibndxAdapter implements Libndx {
         delete this.charCallbackProto
         delete this.charCallbackStruct
         delete this.onConnectedProto
+        delete this.onRssiProto
         delete this.peripheralStruct
     }
 
@@ -103,6 +112,7 @@ export default class LibndxAdapter implements Libndx {
 
     private defineBindings() {
         LibndxAdapter.getOnConnectedProto()
+        LibndxAdapter.getOnRssiProto()
         LibndxAdapter.getCharCallbackStruct()
         const lib = LibndxAdapter.koffiLoad(this.libndxPath)
 
@@ -119,6 +129,11 @@ export default class LibndxAdapter implements Libndx {
             (args: [string, unknown, unknown, number]) =>
                 f(args[0], args[1], args[2], args[3])
 
+        const wrapSetBleRssiInterval =
+            (f: (a: string, b: number, c: unknown) => string) =>
+            (args: [string, number, unknown]) =>
+                f(args[0], args[1], args[2])
+
         this.bindings = {
             create_ble_backend: wrap1(
                 lib.func('str create_ble_backend(str config)')
@@ -133,7 +148,11 @@ export default class LibndxAdapter implements Libndx {
                     'str write_ble_characteristic(str uuid, str charUuid, str value)'
                 )
             ),
-            read_ble_rssi: wrap1(lib.func('str read_ble_rssi(str uuid)')),
+            set_ble_rssi_interval: wrapSetBleRssiInterval(
+                lib.func(
+                    'str set_ble_rssi_interval(str uuid, int interval_ms, OnRssiFn *on_rssi)'
+                )
+            ),
             stop_ble_backend: wrap1(lib.func('str stop_ble_backend(str uuid)')),
             create_ftdi_backend: wrap1(
                 lib.func('str create_ftdi_backend(str config)')
@@ -221,9 +240,21 @@ export default class LibndxAdapter implements Libndx {
         )
     }
 
-    public readBleRssi(options: BleBackendOptions) {
-        const { deviceUuid } = options
-        return JSON.parse(this.bindings.read_ble_rssi([deviceUuid]))
+    public setBleRssiInterval(options: BleRssiOptions) {
+        const { deviceUuid, intervalMs, onRssi } = options
+
+        const registeredOnRssi = LibndxAdapter.koffiRegister(
+            onRssi,
+            LibndxAdapter.koffiPointer(LibndxAdapter.getOnRssiProto()!)
+        )
+
+        return JSON.parse(
+            this.bindings.set_ble_rssi_interval([
+                deviceUuid,
+                intervalMs,
+                registeredOnRssi,
+            ])
+        )
     }
 
     public stopBleBackend(options: BleBackendOptions) {
@@ -253,7 +284,7 @@ export interface Libndx {
     createBleBackend(options: BleBackendOptions): NativeResult
     startBleBackend(options: StartBleBackendOptions): NativeResult
     writeBleCharacteristic(options: WriteBleCharacteristicOptions): NativeResult
-    readBleRssi(options: BleBackendOptions): NativeResult
+    setBleRssiInterval(options: BleRssiOptions): NativeResult
     stopBleBackend(options: BleBackendOptions): NativeResult
     createFtdiBackend(options: FtdiBackendOptions): NativeResult
     startFtdiBackend(options: FtdiBackendOptions): NativeResult
@@ -273,6 +304,11 @@ export interface BleBackendOptions {
 export interface StartBleBackendOptions extends BleBackendOptions {
     onConnected: (peripheral: NativePeripheral) => void
     charCallbacks: CharacteristicCallback[]
+}
+
+export interface BleRssiOptions extends BleBackendOptions {
+    intervalMs: number
+    onRssi: (rssi: number) => void
 }
 
 export interface WriteBleCharacteristicOptions {
@@ -295,7 +331,7 @@ export interface LibndxBindings {
     create_ble_backend(args: [string]): string
     start_ble_backend(args: [string, unknown, unknown, number]): string
     write_ble_characteristic(args: [string, string, string]): string
-    read_ble_rssi(args: [string]): string
+    set_ble_rssi_interval(args: [string, number, unknown]): string
     stop_ble_backend(args: [string]): string
     create_ftdi_backend(args: [string]): string
     start_ftdi_backend(args: [string]): string
