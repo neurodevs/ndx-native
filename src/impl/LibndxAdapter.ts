@@ -45,7 +45,9 @@ export default class LibndxAdapter implements Libndx {
 
     private static getOnRssiProto() {
         if (!this.onRssiProto) {
-            this.onRssiProto = LibndxAdapter.koffiProto('void OnRssiFn(int rssi)')
+            this.onRssiProto = LibndxAdapter.koffiProto(
+                'void OnRssiFn(int rssi)'
+            )
         }
         return this.onRssiProto
     }

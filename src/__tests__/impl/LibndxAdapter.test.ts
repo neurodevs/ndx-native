@@ -311,8 +311,9 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
             received = rssi
         })
 
-        const registeredOnRssi = this.callsToSetBleRssiInterval[0]
-            .onRssi as (rssi: number) => void
+        const registeredOnRssi = this.callsToSetBleRssiInterval[0].onRssi as (
+            rssi: number
+        ) => void
         registeredOnRssi(-72)
 
         assert.isEqual(received, -72, 'onRssi was not invoked with rssi value!')
