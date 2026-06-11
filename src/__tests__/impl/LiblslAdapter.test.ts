@@ -1,5 +1,5 @@
-import { randomInt } from 'crypto'
-import { test, assert } from '@neurodevs/node-tdd'
+import { randomInt } from 'node:crypto'
+
 import {
     createPointer,
     DataType,
@@ -8,6 +8,7 @@ import {
     OpenParams,
     unwrapPointer,
 } from 'ffi-rs'
+import { test, assert } from '@neurodevs/node-tdd'
 
 import {
     ChildHandle,

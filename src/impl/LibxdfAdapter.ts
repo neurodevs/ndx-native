@@ -1,9 +1,10 @@
-import fs from 'fs'
+import fs from 'node:fs'
+
+import { DataType, define, open } from 'ffi-rs'
 import {
     MangledNameExtractor,
     MangledNameMap,
 } from '@neurodevs/node-mangled-names'
-import { DataType, define, open } from 'ffi-rs'
 
 export default class LibxdfAdapter implements Libxdf {
     public static Class?: LibxdfConstructor
