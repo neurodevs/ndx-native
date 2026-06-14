@@ -120,13 +120,6 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
             this.koffiStructCalls,
             [
                 {
-                    name: 'Peripheral',
-                    fields: {
-                        uuid: 'str',
-                        name: 'str',
-                    },
-                },
-                {
                     name: 'CharCallback',
                     fields: {
                         charUuid: 'str',
@@ -135,7 +128,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                     },
                 },
             ],
-            'Did not register Peripheral and CharCallback structs with expected fields!'
+            'Did not register CharCallback struct with expected fields!'
         )
     }
 
@@ -170,9 +163,10 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         const peripheral = { uuid: this.generateId(), name: 'Muse-1234' }
 
         const registeredOnConnected = this.callsToStartBle[0].onConnected as (
-            p: NativePeripheral
+            uuid: string,
+            name: string
         ) => void
-        registeredOnConnected(peripheral)
+        registeredOnConnected(peripheral.uuid, peripheral.name)
 
         assert.isEqualDeep(
             received,
