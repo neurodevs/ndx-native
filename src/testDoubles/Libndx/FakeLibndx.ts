@@ -7,10 +7,12 @@ import {
     StartBleBackendOptions,
     NativeResult,
     BleRssiOptions,
+    DiscoverBleUuidOptions,
 } from '../../impl/LibndxAdapter.js'
 
 export default class FakeLibndx implements Libndx {
     public static callsToConstructor: (LibndxAdapterOptions | undefined)[] = []
+    public static callsToDiscoverBleUuid: DiscoverBleUuidOptions[] = []
     public static callsToCreateBleBackend: BleBackendOptions[] = []
     public static callsToStartBleBackend: StartBleBackendOptions[] = []
     public static callsToWriteBleCharacteristic: WriteBleCharacteristicOptions[] =
@@ -25,6 +27,11 @@ export default class FakeLibndx implements Libndx {
 
     public constructor(options?: LibndxAdapterOptions) {
         FakeLibndx.callsToConstructor.push(options)
+    }
+
+    public discoverBleUuid(options: DiscoverBleUuidOptions) {
+        FakeLibndx.callsToDiscoverBleUuid.push(options)
+        return FakeLibndx.fakeResult
     }
 
     public createBleBackend(options: BleBackendOptions) {
@@ -69,6 +76,7 @@ export default class FakeLibndx implements Libndx {
 
     public static resetTestDouble() {
         FakeLibndx.callsToConstructor = []
+        FakeLibndx.callsToDiscoverBleUuid = []
         FakeLibndx.callsToCreateBleBackend = []
         FakeLibndx.callsToStartBleBackend = []
         FakeLibndx.callsToWriteBleCharacteristic = []

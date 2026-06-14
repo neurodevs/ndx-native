@@ -10,50 +10,9 @@ export default class LibndxAdapter implements Libndx {
 
     private static charCallbackProto?: ReturnType<typeof koffi.proto>
     private static charCallbackStruct?: ReturnType<typeof koffi.struct>
+    private static onDiscoveredProto?: ReturnType<typeof koffi.proto>
     private static onConnectedProto?: ReturnType<typeof koffi.proto>
     private static onRssiProto?: ReturnType<typeof koffi.proto>
-
-    private static getCharCallbackProto() {
-        if (!this.charCallbackProto) {
-            this.charCallbackProto = LibndxAdapter.koffiProto(
-                'void CharCallbackFn(uint8 *data, int length, double timestamp)'
-            )
-        }
-        return this.charCallbackProto
-    }
-
-    private static getOnConnectedProto() {
-        if (!this.onConnectedProto) {
-            this.onConnectedProto = LibndxAdapter.koffiProto(
-                'void OnConnectedFn(str uuid, str name)'
-            )
-        }
-        return this.onConnectedProto
-    }
-
-    private static getOnRssiProto() {
-        if (!this.onRssiProto) {
-            this.onRssiProto = LibndxAdapter.koffiProto(
-                'void OnRssiFn(int rssi)'
-            )
-        }
-        return this.onRssiProto
-    }
-
-    private static getCharCallbackStruct() {
-        if (!this.charCallbackStruct) {
-            this.getCharCallbackProto()
-            this.charCallbackStruct = LibndxAdapter.koffiStruct(
-                'CharCallback',
-                {
-                    charUuid: 'str',
-                    charName: 'str',
-                    onData: LibndxAdapter.koffiPointer(this.charCallbackProto!),
-                }
-            )
-        }
-        return this.charCallbackStruct
-    }
 
     private static instance?: Libndx
 
@@ -87,6 +46,7 @@ export default class LibndxAdapter implements Libndx {
     public static resetKoffiCache() {
         delete this.charCallbackProto
         delete this.charCallbackStruct
+        delete this.onDiscoveredProto
         delete this.onConnectedProto
         delete this.onRssiProto
     }
@@ -100,9 +60,10 @@ export default class LibndxAdapter implements Libndx {
     }
 
     private defineBindings() {
+        LibndxAdapter.getCharCallbackStruct()
+        LibndxAdapter.getOnDiscoveredProto()
         LibndxAdapter.getOnConnectedProto()
         LibndxAdapter.getOnRssiProto()
-        LibndxAdapter.getCharCallbackStruct()
         const lib = LibndxAdapter.koffiLoad(this.libndxPath)
 
         const wrap1 = (f: (a: string) => string) => (args: [string]) =>
@@ -123,7 +84,17 @@ export default class LibndxAdapter implements Libndx {
             (args: [string, number, unknown]) =>
                 f(args[0], args[1], args[2])
 
+        const wrapDiscoverBleUuid =
+            (f: (a: string, b: unknown) => string) =>
+            (args: [string, unknown]) =>
+                f(args[0], args[1])
+
         this.bindings = {
+            discover_ble_uuid: wrapDiscoverBleUuid(
+                lib.func(
+                    'str discover_ble_uuid(str name_prefix, OnDiscoveredFn *on_discovered)'
+                )
+            ),
             create_ble_backend: wrap1(
                 lib.func('str create_ble_backend(str config)')
             ),
@@ -176,6 +147,22 @@ export default class LibndxAdapter implements Libndx {
             \n Original error: ${err.message}
             \n
         `.replace(/\s+/g, '')
+        )
+    }
+
+    public discoverBleUuid(options: DiscoverBleUuidOptions) {
+        const { namePrefix, onDiscovered } = options
+
+        const registeredOnDiscovered = LibndxAdapter.koffiRegister(
+            onDiscovered,
+            LibndxAdapter.koffiPointer(LibndxAdapter.getOnDiscoveredProto()!)
+        )
+
+        return JSON.parse(
+            this.bindings.discover_ble_uuid([
+                namePrefix,
+                registeredOnDiscovered,
+            ])
         )
     }
 
@@ -267,9 +254,61 @@ export default class LibndxAdapter implements Libndx {
         const { serialNumber } = options
         return JSON.parse(this.bindings.stop_ftdi_backend([serialNumber]))
     }
+
+    private static getCharCallbackProto() {
+        if (!this.charCallbackProto) {
+            this.charCallbackProto = LibndxAdapter.koffiProto(
+                'void CharCallbackFn(uint8 *data, int length, double timestamp)'
+            )
+        }
+        return this.charCallbackProto
+    }
+
+    private static getOnConnectedProto() {
+        if (!this.onConnectedProto) {
+            this.onConnectedProto = LibndxAdapter.koffiProto(
+                'void OnConnectedFn(str uuid, str name)'
+            )
+        }
+        return this.onConnectedProto
+    }
+
+    private static getOnRssiProto() {
+        if (!this.onRssiProto) {
+            this.onRssiProto = LibndxAdapter.koffiProto(
+                'void OnRssiFn(int rssi)'
+            )
+        }
+        return this.onRssiProto
+    }
+
+    private static getOnDiscoveredProto() {
+        if (!this.onDiscoveredProto) {
+            this.onDiscoveredProto = LibndxAdapter.koffiProto(
+                'void OnDiscoveredFn(str uuid)'
+            )
+        }
+        return this.onDiscoveredProto
+    }
+
+    private static getCharCallbackStruct() {
+        if (!this.charCallbackStruct) {
+            this.getCharCallbackProto()
+            this.charCallbackStruct = LibndxAdapter.koffiStruct(
+                'CharCallback',
+                {
+                    charUuid: 'str',
+                    charName: 'str',
+                    onData: LibndxAdapter.koffiPointer(this.charCallbackProto!),
+                }
+            )
+        }
+        return this.charCallbackStruct
+    }
 }
 
 export interface Libndx {
+    discoverBleUuid(options: DiscoverBleUuidOptions): NativeResult
     createBleBackend(options: BleBackendOptions): NativeResult
     startBleBackend(options: StartBleBackendOptions): NativeResult
     writeBleCharacteristic(options: WriteBleCharacteristicOptions): NativeResult
@@ -284,6 +323,11 @@ export type LibndxConstructor = new (options?: LibndxAdapterOptions) => Libndx
 
 export interface LibndxAdapterOptions {
     libndxPath?: string
+}
+
+export interface DiscoverBleUuidOptions {
+    namePrefix: string
+    onDiscovered: (uuid: string) => void
 }
 
 export interface BleBackendOptions {
@@ -317,6 +361,7 @@ export interface FtdiBackendOptions {
 }
 
 export interface LibndxBindings {
+    discover_ble_uuid(args: [string, unknown]): string
     create_ble_backend(args: [string]): string
     start_ble_backend(args: [string, unknown, unknown, number]): string
     write_ble_characteristic(args: [string, string, string]): string

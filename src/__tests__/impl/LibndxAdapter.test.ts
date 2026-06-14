@@ -37,6 +37,12 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
 
     private static readonly successfulResult = { status: 200 }
 
+    private static readonly bleNamePrefix = this.generateId()
+
+    private static readonly callsToDiscoverBle: {
+        namePrefix: string
+        onDiscovered: unknown
+    }[] = []
     private static readonly callsToCreateBle: string[][] = []
     private static readonly callsToStartBle: {
         uuid: string
@@ -101,6 +107,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         assert.isEqualDeep(
             this.koffiFuncSignatures,
             [
+                'str discover_ble_uuid(str name_prefix, OnDiscoveredFn *on_discovered)',
                 'str create_ble_backend(str config)',
                 'str start_ble_backend(str uuid, OnConnectedFn *on_connected, CharCallback *callbacks, int num_callbacks)',
                 'str write_ble_characteristic(str uuid, str charUuid, str value)',
@@ -153,6 +160,26 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
+    protected static async registersOnDiscoveredProtoBeforeLoadingBindings() {
+        const onDiscoveredProtoIdx = this.koffiProtoCalls!.findIndex((s) =>
+            s.includes('OnDiscoveredFn')
+        )
+        const firstFuncIdx = this.koffiFuncSignatures!.findIndex((s) =>
+            s.includes('OnDiscoveredFn')
+        )
+        assert.isAbove(
+            onDiscoveredProtoIdx,
+            -1,
+            'Did not register OnDiscoveredFn proto before loading bindings!'
+        )
+        assert.isBelow(
+            onDiscoveredProtoIdx,
+            firstFuncIdx + this.koffiProtoCalls!.length,
+            'OnDiscoveredFn proto must be registered before bindings are loaded!'
+        )
+    }
+
+    @test()
     protected static async onConnectedReceivesPeripheral() {
         let received: NativePeripheral | undefined = undefined
 
@@ -185,6 +212,53 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         const fake = new FakeLibndx()
         LibndxAdapter.setInstance(fake)
         assert.isEqual(LibndxAdapter.getInstance(), fake)
+    }
+
+    @test()
+    protected static async discoverBleUuidCallsBindingWithExpectedArgs() {
+        this.discoverBleUuid()
+
+        assert.isEqual(
+            this.callsToDiscoverBle[0].namePrefix,
+            this.bleNamePrefix,
+            'discoverBleUuid did not pass expected namePrefix to binding!'
+        )
+
+        assert.isFunction(
+            this.callsToDiscoverBle[0].onDiscovered,
+            'discoverBleUuid did not pass an onDiscovered callback to the binding!'
+        )
+    }
+
+    @test()
+    protected static async discoverBleUuidReturnsJson() {
+        const json = this.discoverBleUuid()
+
+        assert.isEqualDeep(
+            json,
+            this.successfulResult,
+            'discoverBleUuid did not return a JSON string!'
+        )
+    }
+
+    @test()
+    protected static async discoverBleUuidInvokesOnDiscoveredWithUuid() {
+        let received: string | undefined
+
+        this.discoverBleUuid((uuid: string) => {
+            received = uuid
+        })
+
+        const discoveredUuid = this.generateId()
+        const registeredOnDiscovered = this.callsToDiscoverBle[0]
+            .onDiscovered as (uuid: string) => void
+        registeredOnDiscovered(discoveredUuid)
+
+        assert.isEqual(
+            received,
+            discoveredUuid,
+            'onDiscovered was not invoked with discovered uuid!'
+        )
     }
 
     @test()
@@ -401,6 +475,13 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         )
     }
 
+    private static discoverBleUuid(onDiscovered?: (uuid: string) => void) {
+        return this.instance.discoverBleUuid({
+            namePrefix: this.bleNamePrefix,
+            onDiscovered: onDiscovered ?? (() => {}),
+        })
+    }
+
     private static createBleBackend() {
         return this.instance.createBleBackend({
             deviceUuid: this.bleDeviceUuid,
@@ -459,6 +540,13 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
 
     private static FakeBindings(): LibndxBindings {
         return {
+            discover_ble_uuid: (args: any) => {
+                this.callsToDiscoverBle.push({
+                    namePrefix: args[0],
+                    onDiscovered: args[1],
+                })
+                return JSON.stringify(this.successfulResult)
+            },
             create_ble_backend: (args) => {
                 this.callsToCreateBle.push(args)
                 return JSON.stringify(this.successfulResult)
@@ -503,6 +591,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     private static resetCallsToFakeBindings() {
+        this.callsToDiscoverBle.length = 0
         this.callsToCreateBle.length = 0
         this.callsToStartBle.length = 0
         this.callsToStopBle.length = 0
