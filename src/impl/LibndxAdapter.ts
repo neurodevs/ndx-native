@@ -258,7 +258,7 @@ export default class LibndxAdapter implements Libndx {
     private static getCharCallbackProto() {
         if (!this.charCallbackProto) {
             this.charCallbackProto = LibndxAdapter.koffiProto(
-                'void CharCallbackFn(uint8 *data, int length, double timestamp)'
+                'void CharCallbackFn(uint8 *data, int length, double timestamp_sec)'
             )
         }
         return this.charCallbackProto
@@ -353,7 +353,7 @@ export interface WriteBleCharacteristicOptions {
 export interface CharacteristicCallback {
     charUuid: string
     charName?: string
-    onData: (data: Buffer, length: number, timestamp: number) => void
+    onData: (data: Buffer, length: number, timestampSec: number) => void
 }
 
 export interface FtdiBackendOptions {

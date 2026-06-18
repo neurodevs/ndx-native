@@ -31,7 +31,11 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         {
             charUuid: this.generateId(),
             charName: this.generateId(),
-            onData: (_data: Buffer, _length: number, _timestamp: number) => {},
+            onData: (
+                _data: Buffer,
+                _length: number,
+                _timestampSec: number
+            ) => {},
         },
     ]
 
