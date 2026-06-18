@@ -372,12 +372,12 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
     @test()
     protected static async pushesFloatSample() {
         const expected = [1.0, 2.0, 3.0]
-        const timestamp = randomInt(100)
+        const timestampSec = randomInt(100)
 
         const options = {
             outletHandle: this.fakeOutletHandle,
             sample: expected,
-            timestamp,
+            timestampSec,
         }
 
         this.instance.pushSampleFloatTimestamp(options)
@@ -385,19 +385,19 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
         assert.isEqualDeep(this.pushSampleFloatTimestampParams, [
             this.fakeOutletHandle,
             expected,
-            timestamp,
+            timestampSec,
         ])
     }
 
     @test()
     protected static async pushesStringSample() {
         const expected = [this.generateId()]
-        const timestamp = randomInt(100)
+        const timestampSec = randomInt(100)
 
         const options = {
             outletHandle: this.fakeOutletHandle,
             sample: expected,
-            timestamp,
+            timestampSec,
         }
 
         this.instance.pushSampleStringTimestamp(options)
@@ -406,7 +406,7 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
             this.fakeOutletHandle
         )
         assert.isEqualDeep(this.pushSampleStringTimestampParams?.[1], expected)
-        assert.isEqual(this.pushSampleStringTimestampParams?.[2], timestamp)
+        assert.isEqual(this.pushSampleStringTimestampParams?.[2], timestampSec)
     }
 
     @test()

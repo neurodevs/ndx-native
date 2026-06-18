@@ -282,24 +282,24 @@ export default class LiblslAdapter implements Liblsl {
     }
 
     public pushSampleFloatTimestamp(options: PushSampleFloatTimestampOptions) {
-        const { outletHandle, sample, timestamp } = options
+        const { outletHandle, sample, timestampSec } = options
 
         return this.bindings.lsl_push_sample_ft([
             outletHandle,
             sample,
-            timestamp,
+            timestampSec,
         ])
     }
 
     public pushSampleStringTimestamp(
         options: PushSampleStringTimestampOptions
     ) {
-        const { outletHandle, sample, timestamp } = options
+        const { outletHandle, sample, timestampSec } = options
 
         return this.bindings.lsl_push_sample_strt([
             outletHandle,
             sample,
-            timestamp,
+            timestampSec,
         ])
     }
 
@@ -517,13 +517,13 @@ export interface CreateOutletOptions {
 export interface PushSampleFloatTimestampOptions {
     outletHandle: OutletHandle
     sample: number[]
-    timestamp: number
+    timestampSec: number
 }
 
 export interface PushSampleStringTimestampOptions {
     outletHandle: OutletHandle
     sample: string[]
-    timestamp: number
+    timestampSec: number
 }
 
 export interface DestroyOutletOptions {
