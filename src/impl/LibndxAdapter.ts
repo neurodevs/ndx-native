@@ -240,7 +240,7 @@ export default class LibndxAdapter implements Libndx {
 
     public createFtdiBackend(options: FtdiBackendOptions) {
         const { serialNumber } = options
-        const configJson = JSON.stringify({ serialNumber })
+        const configJson = JSON.stringify({ serial_number: serialNumber })
 
         return JSON.parse(this.bindings.create_ftdi_backend([configJson]))
     }

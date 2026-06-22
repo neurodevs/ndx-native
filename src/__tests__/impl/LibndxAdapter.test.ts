@@ -419,7 +419,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
 
         assert.isEqualDeep(
             this.callsToCreateFtdi[0][0],
-            JSON.stringify({ serialNumber: this.ftdiSerialNumber }),
+            JSON.stringify({ serial_number: this.ftdiSerialNumber }),
             'createFtdiBackend did not call binding with expected args!'
         )
     }
