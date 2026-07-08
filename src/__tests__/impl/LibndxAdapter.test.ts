@@ -53,6 +53,11 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         onConnected: unknown
         charCallbacks: CharacteristicCallback[]
     }[] = []
+    private static readonly callsToAddBleCharCallbacks: {
+        uuid: string
+        charCallbacks: unknown
+        numCallbacks: number
+    }[] = []
     private static readonly callsToWriteBle: string[][] = []
     private static readonly callsToSetBleRssiInterval: {
         uuid: string
@@ -114,6 +119,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 'str discover_ble_uuid(str name_prefix, OnDiscoveredFn *on_discovered)',
                 'str create_ble_backend(str config)',
                 'str start_ble_backend(str uuid, OnConnectedFn *on_connected, CharCallback *callbacks, int num_callbacks)',
+                'str add_ble_char_callbacks(str uuid, CharCallback *callbacks, int num_callbacks)',
                 'str write_ble_characteristic(str uuid, str charUuid, str value)',
                 'str set_ble_rssi_interval(str uuid, int interval_ms, OnRssiFn *on_rssi)',
                 'str stop_ble_backend(str uuid)',
@@ -318,6 +324,36 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
+    protected static async addBleCharCallbacksCallsBindingWithExpectedArgs() {
+        this.addBleCharCallbacks()
+
+        const call = this.callsToAddBleCharCallbacks[0]
+
+        assert.isEqual(
+            call.uuid,
+            this.bleDeviceUuid,
+            'addBleCharCallbacks did not pass expected uuid to binding!'
+        )
+
+        assert.isEqual(
+            call.numCallbacks,
+            this.charCallbacks.length,
+            'addBleCharCallbacks did not pass expected callback count to binding!'
+        )
+    }
+
+    @test()
+    protected static async addBleCharCallbacksReturnsJson() {
+        const json = this.addBleCharCallbacks()
+
+        assert.isEqualDeep(
+            json,
+            this.successfulResult,
+            'addBleCharCallbacks did not return a JSON string!'
+        )
+    }
+
+    @test()
     protected static async writeBleCharacteristicCallsBindingWithExpectedArgs() {
         this.writeBleCharacteristic()
 
@@ -502,6 +538,13 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
     }
 
+    private static addBleCharCallbacks() {
+        return this.instance.addBleCharCallbacks({
+            deviceUuid: this.bleDeviceUuid,
+            charCallbacks: this.charCallbacks,
+        })
+    }
+
     private static writeBleCharacteristic() {
         return this.instance.writeBleCharacteristic({
             deviceUuid: this.bleDeviceUuid,
@@ -563,6 +606,14 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 })
                 return JSON.stringify(this.successfulResult)
             },
+            add_ble_char_callbacks: (args: any) => {
+                this.callsToAddBleCharCallbacks.push({
+                    uuid: args[0],
+                    charCallbacks: args[1],
+                    numCallbacks: args[2],
+                })
+                return JSON.stringify(this.successfulResult)
+            },
             write_ble_characteristic: (args) => {
                 this.callsToWriteBle.push(args)
                 return JSON.stringify(this.successfulResult)
@@ -598,6 +649,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         this.callsToDiscoverBle.length = 0
         this.callsToCreateBle.length = 0
         this.callsToStartBle.length = 0
+        this.callsToAddBleCharCallbacks.length = 0
         this.callsToStopBle.length = 0
         this.callsToSetBleRssiInterval.length = 0
         this.callsToCreateFtdi.length = 0

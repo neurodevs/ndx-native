@@ -79,6 +79,11 @@ export default class LibndxAdapter implements Libndx {
             (args: [string, unknown, unknown, number]) =>
                 f(args[0], args[1], args[2], args[3])
 
+        const wrapAddBleCharCallbacks =
+            (f: (a: string, b: unknown, c: number) => string) =>
+            (args: [string, unknown, number]) =>
+                f(args[0], args[1], args[2])
+
         const wrapSetBleRssiInterval =
             (f: (a: string, b: number, c: unknown) => string) =>
             (args: [string, number, unknown]) =>
@@ -101,6 +106,11 @@ export default class LibndxAdapter implements Libndx {
             start_ble_backend: wrapStartBle(
                 lib.func(
                     'str start_ble_backend(str uuid, OnConnectedFn *on_connected, CharCallback *callbacks, int num_callbacks)'
+                )
+            ),
+            add_ble_char_callbacks: wrapAddBleCharCallbacks(
+                lib.func(
+                    'str add_ble_char_callbacks(str uuid, CharCallback *callbacks, int num_callbacks)'
                 )
             ),
             write_ble_characteristic: wrap3(
@@ -200,6 +210,33 @@ export default class LibndxAdapter implements Libndx {
                 registeredOnConnected,
                 this.registeredCallbacks,
                 this.registeredCallbacks.length,
+            ])
+        )
+    }
+
+    public addBleCharCallbacks(options: AddBleCharCallbacksOptions) {
+        const { deviceUuid, charCallbacks } = options
+
+        const registered = charCallbacks.map(
+            ({ charUuid, charName, onData }) => ({
+                charUuid,
+                charName,
+                onData: LibndxAdapter.koffiRegister(
+                    onData,
+                    LibndxAdapter.koffiPointer(
+                        LibndxAdapter.getCharCallbackProto()!
+                    )
+                ),
+            })
+        )
+
+        this.registeredCallbacks.push(...registered)
+
+        return JSON.parse(
+            this.bindings.add_ble_char_callbacks([
+                deviceUuid,
+                registered,
+                registered.length,
             ])
         )
     }
@@ -311,6 +348,7 @@ export interface Libndx {
     discoverBleUuid(options: DiscoverBleUuidOptions): NativeResult
     createBleBackend(options: BleBackendOptions): NativeResult
     startBleBackend(options: StartBleBackendOptions): NativeResult
+    addBleCharCallbacks(options: AddBleCharCallbacksOptions): NativeResult
     writeBleCharacteristic(options: WriteBleCharacteristicOptions): NativeResult
     setBleRssiInterval(options: BleRssiOptions): NativeResult
     stopBleBackend(options: BleBackendOptions): NativeResult
@@ -339,6 +377,10 @@ export interface StartBleBackendOptions extends BleBackendOptions {
     charCallbacks: CharacteristicCallback[]
 }
 
+export interface AddBleCharCallbacksOptions extends BleBackendOptions {
+    charCallbacks: CharacteristicCallback[]
+}
+
 export interface BleRssiOptions extends BleBackendOptions {
     intervalMs: number
     onRssi: (rssi: number) => void
@@ -364,6 +406,7 @@ export interface LibndxBindings {
     discover_ble_uuid(args: [string, unknown]): string
     create_ble_backend(args: [string]): string
     start_ble_backend(args: [string, unknown, unknown, number]): string
+    add_ble_char_callbacks(args: [string, unknown, number]): string
     write_ble_characteristic(args: [string, string, string]): string
     set_ble_rssi_interval(args: [string, number, unknown]): string
     stop_ble_backend(args: [string]): string

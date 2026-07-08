@@ -1,4 +1,5 @@
 import {
+    AddBleCharCallbacksOptions,
     BleBackendOptions,
     WriteBleCharacteristicOptions,
     FtdiBackendOptions,
@@ -15,6 +16,7 @@ export default class FakeLibndx implements Libndx {
     public static callsToDiscoverBleUuid: DiscoverBleUuidOptions[] = []
     public static callsToCreateBleBackend: BleBackendOptions[] = []
     public static callsToStartBleBackend: StartBleBackendOptions[] = []
+    public static callsToAddBleCharCallbacks: AddBleCharCallbacksOptions[] = []
     public static callsToWriteBleCharacteristic: WriteBleCharacteristicOptions[] =
         []
     public static callsToStopBleBackend: BleBackendOptions[] = []
@@ -41,6 +43,11 @@ export default class FakeLibndx implements Libndx {
 
     public startBleBackend(options: StartBleBackendOptions) {
         FakeLibndx.callsToStartBleBackend.push(options)
+        return FakeLibndx.fakeResult
+    }
+
+    public addBleCharCallbacks(options: AddBleCharCallbacksOptions) {
+        FakeLibndx.callsToAddBleCharCallbacks.push(options)
         return FakeLibndx.fakeResult
     }
 
@@ -79,6 +86,7 @@ export default class FakeLibndx implements Libndx {
         FakeLibndx.callsToDiscoverBleUuid = []
         FakeLibndx.callsToCreateBleBackend = []
         FakeLibndx.callsToStartBleBackend = []
+        FakeLibndx.callsToAddBleCharCallbacks = []
         FakeLibndx.callsToWriteBleCharacteristic = []
         FakeLibndx.callsToStopBleBackend = []
         FakeLibndx.callsToSetBleRssiInterval = []
