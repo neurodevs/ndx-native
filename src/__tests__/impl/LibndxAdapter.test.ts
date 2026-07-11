@@ -40,6 +40,20 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         },
     ]
 
+    private static receivedUsbData: Buffer
+    private static receivedUsbLength: number
+    private static receivedTimestampSec: number
+
+    private static readonly usbOnDataCallback = (
+        data: Buffer,
+        length: number,
+        timestampSec: number
+    ) => {
+        this.receivedUsbData = data
+        this.receivedUsbLength = length
+        this.receivedTimestampSec = timestampSec
+    }
+
     private static readonly successfulResult = { status: 200 }
 
     private static readonly bleNamePrefix = this.generateId()
@@ -500,7 +514,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
 
     @test()
     protected static async startUsbBackendPassesOnDataCallbackToBinding() {
-        this.startUsbBackend(() => {})
+        this.startUsbBackend()
 
         assert.isFunction(
             this.callsToStartUsb[0][1],
@@ -510,15 +524,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
 
     @test()
     protected static async startUsbBackendInvokesOnDataWithReceivedData() {
-        let receivedData: Buffer | undefined
-        let receivedLength: number | undefined
-        let receivedTimestamp: number | undefined
-
-        this.startUsbBackend((data, length, timestampSec) => {
-            receivedData = data
-            receivedLength = length
-            receivedTimestamp = timestampSec
-        })
+        this.startUsbBackend()
 
         const registeredOnData = this.callsToStartUsb[0][1] as (
             data: Buffer,
@@ -530,7 +536,11 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         registeredOnData(fakeData, fakeData.length, 123.456)
 
         assert.isEqualDeep(
-            { receivedData, receivedLength, receivedTimestamp },
+            {
+                receivedData: this.receivedUsbData,
+                receivedLength: this.receivedUsbLength,
+                receivedTimestamp: this.receivedTimestampSec,
+            },
             {
                 receivedData: fakeData,
                 receivedLength: fakeData.length,
@@ -653,12 +663,10 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
     }
 
-    private static startUsbBackend(
-        onData?: (data: Buffer, length: number, timestampSec: number) => void
-    ) {
+    private static startUsbBackend() {
         return this.instance.startUsbBackend({
             serialNumber: this.usbSerialNumber,
-            onData,
+            onData: this.usbOnDataCallback,
         })
     }
 

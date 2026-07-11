@@ -300,7 +300,7 @@ export default class LibndxAdapter implements Libndx {
         return JSON.parse(this.bindings.create_usb_backend([configJson]))
     }
 
-    public startUsbBackend(options: UsbBackendOptions) {
+    public startUsbBackend(options: StartUsbBackendOptions) {
         const { serialNumber, onData } = options
 
         const registeredOnData = LibndxAdapter.koffiRegister(
@@ -396,7 +396,7 @@ export interface Libndx {
     setBleRssiInterval(options: BleRssiOptions): NativeResult
     stopBleBackend(options: BleBackendOptions): NativeResult
     createUsbBackend(options: UsbBackendOptions): NativeResult
-    startUsbBackend(options: UsbBackendOptions): NativeResult
+    startUsbBackend(options: StartUsbBackendOptions): NativeResult
     writeUsbBackend(options: WriteUsbBackendOptions): NativeResult
     stopUsbBackend(options: UsbBackendOptions): NativeResult
 }
@@ -444,7 +444,10 @@ export interface CharacteristicCallback {
 
 export interface UsbBackendOptions {
     serialNumber: string
-    onData?: (data: Buffer, length: number, timestampSec: number) => void
+}
+
+export interface StartUsbBackendOptions extends UsbBackendOptions {
+    onData: (data: Buffer, length: number, timestampSec: number) => void
 }
 
 export interface WriteUsbBackendOptions extends UsbBackendOptions {
