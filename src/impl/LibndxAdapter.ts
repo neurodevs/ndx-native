@@ -69,6 +69,10 @@ export default class LibndxAdapter implements Libndx {
         const wrap1 = (f: (a: string) => string) => (args: [string]) =>
             f(args[0])
 
+        const wrap2 =
+            (f: (a: string, b: string) => string) => (args: [string, string]) =>
+                f(args[0], args[1])
+
         const wrap3 =
             (f: (a: string, b: string, c: string) => string) =>
             (args: [string, string, string]) =>
@@ -129,6 +133,9 @@ export default class LibndxAdapter implements Libndx {
             ),
             start_usb_backend: wrap1(
                 lib.func('str start_usb_backend(str serial)')
+            ),
+            write_usb_backend: wrap2(
+                lib.func('str write_usb_backend(str serial, str value)')
             ),
             stop_usb_backend: wrap1(
                 lib.func('str stop_usb_backend(str serial)')
@@ -287,6 +294,14 @@ export default class LibndxAdapter implements Libndx {
         return JSON.parse(this.bindings.start_usb_backend([serialNumber]))
     }
 
+    public writeUsbBackend(options: WriteUsbBackendOptions) {
+        const { serialNumber, value } = options
+
+        return JSON.parse(
+            this.bindings.write_usb_backend([serialNumber, value])
+        )
+    }
+
     public stopUsbBackend(options: UsbBackendOptions) {
         const { serialNumber } = options
         return JSON.parse(this.bindings.stop_usb_backend([serialNumber]))
@@ -354,6 +369,7 @@ export interface Libndx {
     stopBleBackend(options: BleBackendOptions): NativeResult
     createUsbBackend(options: UsbBackendOptions): NativeResult
     startUsbBackend(options: UsbBackendOptions): NativeResult
+    writeUsbBackend(options: WriteUsbBackendOptions): NativeResult
     stopUsbBackend(options: UsbBackendOptions): NativeResult
 }
 
@@ -402,6 +418,10 @@ export interface UsbBackendOptions {
     serialNumber: string
 }
 
+export interface WriteUsbBackendOptions extends UsbBackendOptions {
+    value: string
+}
+
 export interface LibndxBindings {
     discover_ble_uuid(args: [string, unknown]): string
     create_ble_backend(args: [string]): string
@@ -412,6 +432,7 @@ export interface LibndxBindings {
     stop_ble_backend(args: [string]): string
     create_usb_backend(args: [string]): string
     start_usb_backend(args: [string]): string
+    write_usb_backend(args: [string, string]): string
     stop_usb_backend(args: [string]): string
 }
 

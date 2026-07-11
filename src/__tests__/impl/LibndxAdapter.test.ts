@@ -26,6 +26,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static readonly bleRssiIntervalMs = Math.random()
 
     private static readonly usbSerialNumber = this.generateId()
+    private static readonly usbValueToWrite = this.generateId()
 
     private static readonly charCallbacks = [
         {
@@ -68,6 +69,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
 
     private static readonly callsToCreateUsb: string[][] = []
     private static readonly callsToStartUsb: string[][] = []
+    private static readonly callsToWriteUsb: string[][] = []
     private static readonly callsToStopUsb: string[][] = []
 
     protected static async beforeEach() {
@@ -125,6 +127,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 'str stop_ble_backend(str uuid)',
                 'str create_usb_backend(str config)',
                 'str start_usb_backend(str serial)',
+                'str write_usb_backend(str serial, str value)',
                 'str stop_usb_backend(str serial)',
             ],
             'Did not register expected koffi func signatures!'
@@ -494,6 +497,28 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
+    protected static async writeUsbBackendCallsBindingWithExpectedArgs() {
+        this.writeUsbBackend()
+
+        assert.isEqualDeep(
+            this.callsToWriteUsb[0],
+            [this.usbSerialNumber, this.usbValueToWrite],
+            'writeUsbBackend did not call binding with expected args!'
+        )
+    }
+
+    @test()
+    protected static async writeUsbBackendReturnsJson() {
+        const json = this.writeUsbBackend()
+
+        assert.isEqualDeep(
+            json,
+            this.successfulResult,
+            'writeUsbBackend did not return a JSON string!'
+        )
+    }
+
+    @test()
     protected static async stopUsbBackendCallsBindingWithExpectedArgs() {
         this.stopUsbBackend()
 
@@ -579,6 +604,13 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
     }
 
+    private static writeUsbBackend() {
+        return this.instance.writeUsbBackend({
+            serialNumber: this.usbSerialNumber,
+            value: this.usbValueToWrite,
+        })
+    }
+
     private static stopUsbBackend() {
         return this.instance.stopUsbBackend({
             serialNumber: this.usbSerialNumber,
@@ -638,6 +670,10 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 this.callsToStartUsb.push(args)
                 return JSON.stringify(this.successfulResult)
             },
+            write_usb_backend: (args) => {
+                this.callsToWriteUsb.push(args)
+                return JSON.stringify(this.successfulResult)
+            },
             stop_usb_backend: (args) => {
                 this.callsToStopUsb.push(args)
                 return JSON.stringify(this.successfulResult)
@@ -654,6 +690,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         this.callsToSetBleRssiInterval.length = 0
         this.callsToCreateUsb.length = 0
         this.callsToStartUsb.length = 0
+        this.callsToWriteUsb.length = 0
         this.callsToStopUsb.length = 0
     }
 

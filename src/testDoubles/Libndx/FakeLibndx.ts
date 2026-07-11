@@ -3,6 +3,7 @@ import {
     BleBackendOptions,
     WriteBleCharacteristicOptions,
     UsbBackendOptions,
+    WriteUsbBackendOptions,
     Libndx,
     LibndxAdapterOptions,
     StartBleBackendOptions,
@@ -23,6 +24,7 @@ export default class FakeLibndx implements Libndx {
     public static callsToSetBleRssiInterval: BleRssiOptions[] = []
     public static callsToCreateUsbBackend: UsbBackendOptions[] = []
     public static callsToStartUsbBackend: UsbBackendOptions[] = []
+    public static callsToWriteUsbBackend: WriteUsbBackendOptions[] = []
     public static callsToStopUsbBackend: UsbBackendOptions[] = []
 
     public static fakeResult: NativeResult = { status: 200 }
@@ -76,6 +78,11 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
+    public writeUsbBackend(options: WriteUsbBackendOptions) {
+        FakeLibndx.callsToWriteUsbBackend.push(options)
+        return FakeLibndx.fakeResult
+    }
+
     public stopUsbBackend(options: UsbBackendOptions) {
         FakeLibndx.callsToStopUsbBackend.push(options)
         return FakeLibndx.fakeResult
@@ -92,6 +99,7 @@ export default class FakeLibndx implements Libndx {
         FakeLibndx.callsToSetBleRssiInterval = []
         FakeLibndx.callsToCreateUsbBackend = []
         FakeLibndx.callsToStartUsbBackend = []
+        FakeLibndx.callsToWriteUsbBackend = []
         FakeLibndx.callsToStopUsbBackend = []
     }
 }
