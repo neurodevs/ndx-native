@@ -304,7 +304,7 @@ export default class LibndxAdapter implements Libndx {
         const { serialNumber, onData } = options
 
         const registeredOnData = LibndxAdapter.koffiRegister(
-            onData ?? (() => {}),
+            onData,
             LibndxAdapter.koffiPointer(LibndxAdapter.getOnUsbDataProto()!)
         )
 
