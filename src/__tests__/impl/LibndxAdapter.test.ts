@@ -25,7 +25,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static readonly bleValueToWrite = this.generateId()
     private static readonly bleRssiIntervalMs = Math.random()
 
-    private static readonly ftdiSerialNumber = this.generateId()
+    private static readonly usbSerialNumber = this.generateId()
 
     private static readonly charCallbacks = [
         {
@@ -66,9 +66,9 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }[] = []
     private static readonly callsToStopBle: string[][] = []
 
-    private static readonly callsToCreateFtdi: string[][] = []
-    private static readonly callsToStartFtdi: string[][] = []
-    private static readonly callsToStopFtdi: string[][] = []
+    private static readonly callsToCreateUsb: string[][] = []
+    private static readonly callsToStartUsb: string[][] = []
+    private static readonly callsToStopUsb: string[][] = []
 
     protected static async beforeEach() {
         await super.beforeEach()
@@ -123,9 +123,9 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 'str write_ble_characteristic(str uuid, str charUuid, str value)',
                 'str set_ble_rssi_interval(str uuid, int interval_ms, OnRssiFn *on_rssi)',
                 'str stop_ble_backend(str uuid)',
-                'str create_ftdi_backend(str config)',
-                'str start_ftdi_backend(str serial)',
-                'str stop_ftdi_backend(str serial)',
+                'str create_usb_backend(str config)',
+                'str start_usb_backend(str serial)',
+                'str stop_usb_backend(str serial)',
             ],
             'Did not register expected koffi func signatures!'
         )
@@ -450,68 +450,68 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async createFtdiBackendCallsBindingWithExpectedArgs() {
-        this.createFtdiBackend()
+    protected static async createUsbBackendCallsBindingWithExpectedArgs() {
+        this.createUsbBackend()
 
         assert.isEqualDeep(
-            this.callsToCreateFtdi[0][0],
-            JSON.stringify({ serial_number: this.ftdiSerialNumber }),
-            'createFtdiBackend did not call binding with expected args!'
+            this.callsToCreateUsb[0][0],
+            JSON.stringify({ serial_number: this.usbSerialNumber }),
+            'createUsbBackend did not call binding with expected args!'
         )
     }
 
     @test()
-    protected static async createFtdiBackendReturnsJson() {
-        const json = this.createFtdiBackend()
+    protected static async createUsbBackendReturnsJson() {
+        const json = this.createUsbBackend()
 
         assert.isEqualDeep(
             json,
             this.successfulResult,
-            'createFtdiBackend did not return a JSON string!'
+            'createUsbBackend did not return a JSON string!'
         )
     }
 
     @test()
-    protected static async startFtdiBackendCallsBindingWithExpectedArgs() {
-        this.startFtdiBackend()
+    protected static async startUsbBackendCallsBindingWithExpectedArgs() {
+        this.startUsbBackend()
 
         assert.isEqual(
-            this.callsToStartFtdi[0][0],
-            this.ftdiSerialNumber,
-            'startFtdiBackend did not call binding with expected args!'
+            this.callsToStartUsb[0][0],
+            this.usbSerialNumber,
+            'startUsbBackend did not call binding with expected args!'
         )
     }
 
     @test()
-    protected static async startFtdiBackendReturnsJson() {
-        const json = this.startFtdiBackend()
+    protected static async startUsbBackendReturnsJson() {
+        const json = this.startUsbBackend()
 
         assert.isEqualDeep(
             json,
             this.successfulResult,
-            'startFtdiBackend did not return a JSON string!'
+            'startUsbBackend did not return a JSON string!'
         )
     }
 
     @test()
-    protected static async stopFtdiBackendCallsBindingWithExpectedArgs() {
-        this.stopFtdiBackend()
+    protected static async stopUsbBackendCallsBindingWithExpectedArgs() {
+        this.stopUsbBackend()
 
         assert.isEqual(
-            this.callsToStopFtdi[0][0],
-            this.ftdiSerialNumber,
-            'stopFtdiBackend did not call binding with expected args!'
+            this.callsToStopUsb[0][0],
+            this.usbSerialNumber,
+            'stopUsbBackend did not call binding with expected args!'
         )
     }
 
     @test()
-    protected static async stopFtdiBackendReturnsJson() {
-        const json = this.stopFtdiBackend()
+    protected static async stopUsbBackendReturnsJson() {
+        const json = this.stopUsbBackend()
 
         assert.isEqualDeep(
             json,
             this.successfulResult,
-            'stopFtdiBackend did not return a JSON string!'
+            'stopUsbBackend did not return a JSON string!'
         )
     }
 
@@ -567,21 +567,21 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
     }
 
-    private static createFtdiBackend() {
-        return this.instance.createFtdiBackend({
-            serialNumber: this.ftdiSerialNumber,
+    private static createUsbBackend() {
+        return this.instance.createUsbBackend({
+            serialNumber: this.usbSerialNumber,
         })
     }
 
-    private static startFtdiBackend() {
-        return this.instance.startFtdiBackend({
-            serialNumber: this.ftdiSerialNumber,
+    private static startUsbBackend() {
+        return this.instance.startUsbBackend({
+            serialNumber: this.usbSerialNumber,
         })
     }
 
-    private static stopFtdiBackend() {
-        return this.instance.stopFtdiBackend({
-            serialNumber: this.ftdiSerialNumber,
+    private static stopUsbBackend() {
+        return this.instance.stopUsbBackend({
+            serialNumber: this.usbSerialNumber,
         })
     }
 
@@ -630,16 +630,16 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 this.callsToStopBle.push(args)
                 return JSON.stringify(this.successfulResult)
             },
-            create_ftdi_backend: (args) => {
-                this.callsToCreateFtdi.push(args)
+            create_usb_backend: (args) => {
+                this.callsToCreateUsb.push(args)
                 return JSON.stringify(this.successfulResult)
             },
-            start_ftdi_backend: (args) => {
-                this.callsToStartFtdi.push(args)
+            start_usb_backend: (args) => {
+                this.callsToStartUsb.push(args)
                 return JSON.stringify(this.successfulResult)
             },
-            stop_ftdi_backend: (args) => {
-                this.callsToStopFtdi.push(args)
+            stop_usb_backend: (args) => {
+                this.callsToStopUsb.push(args)
                 return JSON.stringify(this.successfulResult)
             },
         }
@@ -652,9 +652,9 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         this.callsToAddBleCharCallbacks.length = 0
         this.callsToStopBle.length = 0
         this.callsToSetBleRssiInterval.length = 0
-        this.callsToCreateFtdi.length = 0
-        this.callsToStartFtdi.length = 0
-        this.callsToStopFtdi.length = 0
+        this.callsToCreateUsb.length = 0
+        this.callsToStartUsb.length = 0
+        this.callsToStopUsb.length = 0
     }
 
     private static clearAndFakeFfi() {

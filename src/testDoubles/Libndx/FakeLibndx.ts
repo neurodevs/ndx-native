@@ -2,7 +2,7 @@ import {
     AddBleCharCallbacksOptions,
     BleBackendOptions,
     WriteBleCharacteristicOptions,
-    FtdiBackendOptions,
+    UsbBackendOptions,
     Libndx,
     LibndxAdapterOptions,
     StartBleBackendOptions,
@@ -21,9 +21,9 @@ export default class FakeLibndx implements Libndx {
         []
     public static callsToStopBleBackend: BleBackendOptions[] = []
     public static callsToSetBleRssiInterval: BleRssiOptions[] = []
-    public static callsToCreateFtdiBackend: FtdiBackendOptions[] = []
-    public static callsToStartFtdiBackend: FtdiBackendOptions[] = []
-    public static callsToStopFtdiBackend: FtdiBackendOptions[] = []
+    public static callsToCreateUsbBackend: UsbBackendOptions[] = []
+    public static callsToStartUsbBackend: UsbBackendOptions[] = []
+    public static callsToStopUsbBackend: UsbBackendOptions[] = []
 
     public static fakeResult: NativeResult = { status: 200 }
 
@@ -66,18 +66,18 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
-    public createFtdiBackend(options: FtdiBackendOptions) {
-        FakeLibndx.callsToCreateFtdiBackend.push(options)
+    public createUsbBackend(options: UsbBackendOptions) {
+        FakeLibndx.callsToCreateUsbBackend.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public startFtdiBackend(options: FtdiBackendOptions) {
-        FakeLibndx.callsToStartFtdiBackend.push(options)
+    public startUsbBackend(options: UsbBackendOptions) {
+        FakeLibndx.callsToStartUsbBackend.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public stopFtdiBackend(options: FtdiBackendOptions) {
-        FakeLibndx.callsToStopFtdiBackend.push(options)
+    public stopUsbBackend(options: UsbBackendOptions) {
+        FakeLibndx.callsToStopUsbBackend.push(options)
         return FakeLibndx.fakeResult
     }
 
@@ -90,8 +90,8 @@ export default class FakeLibndx implements Libndx {
         FakeLibndx.callsToWriteBleCharacteristic = []
         FakeLibndx.callsToStopBleBackend = []
         FakeLibndx.callsToSetBleRssiInterval = []
-        FakeLibndx.callsToCreateFtdiBackend = []
-        FakeLibndx.callsToStartFtdiBackend = []
-        FakeLibndx.callsToStopFtdiBackend = []
+        FakeLibndx.callsToCreateUsbBackend = []
+        FakeLibndx.callsToStartUsbBackend = []
+        FakeLibndx.callsToStopUsbBackend = []
     }
 }

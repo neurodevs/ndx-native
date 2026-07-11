@@ -124,14 +124,14 @@ export default class LibndxAdapter implements Libndx {
                 )
             ),
             stop_ble_backend: wrap1(lib.func('str stop_ble_backend(str uuid)')),
-            create_ftdi_backend: wrap1(
-                lib.func('str create_ftdi_backend(str config)')
+            create_usb_backend: wrap1(
+                lib.func('str create_usb_backend(str config)')
             ),
-            start_ftdi_backend: wrap1(
-                lib.func('str start_ftdi_backend(str serial)')
+            start_usb_backend: wrap1(
+                lib.func('str start_usb_backend(str serial)')
             ),
-            stop_ftdi_backend: wrap1(
-                lib.func('str stop_ftdi_backend(str serial)')
+            stop_usb_backend: wrap1(
+                lib.func('str stop_usb_backend(str serial)')
             ),
         }
     }
@@ -275,21 +275,21 @@ export default class LibndxAdapter implements Libndx {
         return JSON.parse(this.bindings.stop_ble_backend([deviceUuid]))
     }
 
-    public createFtdiBackend(options: FtdiBackendOptions) {
+    public createUsbBackend(options: UsbBackendOptions) {
         const { serialNumber } = options
         const configJson = JSON.stringify({ serial_number: serialNumber })
 
-        return JSON.parse(this.bindings.create_ftdi_backend([configJson]))
+        return JSON.parse(this.bindings.create_usb_backend([configJson]))
     }
 
-    public startFtdiBackend(options: FtdiBackendOptions) {
+    public startUsbBackend(options: UsbBackendOptions) {
         const { serialNumber } = options
-        return JSON.parse(this.bindings.start_ftdi_backend([serialNumber]))
+        return JSON.parse(this.bindings.start_usb_backend([serialNumber]))
     }
 
-    public stopFtdiBackend(options: FtdiBackendOptions) {
+    public stopUsbBackend(options: UsbBackendOptions) {
         const { serialNumber } = options
-        return JSON.parse(this.bindings.stop_ftdi_backend([serialNumber]))
+        return JSON.parse(this.bindings.stop_usb_backend([serialNumber]))
     }
 
     private static getCharCallbackProto() {
@@ -352,9 +352,9 @@ export interface Libndx {
     writeBleCharacteristic(options: WriteBleCharacteristicOptions): NativeResult
     setBleRssiInterval(options: BleRssiOptions): NativeResult
     stopBleBackend(options: BleBackendOptions): NativeResult
-    createFtdiBackend(options: FtdiBackendOptions): NativeResult
-    startFtdiBackend(options: FtdiBackendOptions): NativeResult
-    stopFtdiBackend(options: FtdiBackendOptions): NativeResult
+    createUsbBackend(options: UsbBackendOptions): NativeResult
+    startUsbBackend(options: UsbBackendOptions): NativeResult
+    stopUsbBackend(options: UsbBackendOptions): NativeResult
 }
 
 export type LibndxConstructor = new (options?: LibndxAdapterOptions) => Libndx
@@ -398,7 +398,7 @@ export interface CharacteristicCallback {
     onData: (data: Buffer, length: number, timestampSec: number) => void
 }
 
-export interface FtdiBackendOptions {
+export interface UsbBackendOptions {
     serialNumber: string
 }
 
@@ -410,9 +410,9 @@ export interface LibndxBindings {
     write_ble_characteristic(args: [string, string, string]): string
     set_ble_rssi_interval(args: [string, number, unknown]): string
     stop_ble_backend(args: [string]): string
-    create_ftdi_backend(args: [string]): string
-    start_ftdi_backend(args: [string]): string
-    stop_ftdi_backend(args: [string]): string
+    create_usb_backend(args: [string]): string
+    start_usb_backend(args: [string]): string
+    stop_usb_backend(args: [string]): string
 }
 
 export interface NativePeripheral {
