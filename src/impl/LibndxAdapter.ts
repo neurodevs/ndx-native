@@ -13,6 +13,7 @@ export default class LibndxAdapter implements Libndx {
     private static onDiscoveredProto?: ReturnType<typeof koffi.proto>
     private static onConnectedProto?: ReturnType<typeof koffi.proto>
     private static onRssiProto?: ReturnType<typeof koffi.proto>
+    private static onUsbDataProto?: ReturnType<typeof koffi.proto>
 
     private static instance?: Libndx
 
@@ -49,6 +50,7 @@ export default class LibndxAdapter implements Libndx {
         delete this.onDiscoveredProto
         delete this.onConnectedProto
         delete this.onRssiProto
+        delete this.onUsbDataProto
     }
 
     private tryToLoadBindings() {
@@ -64,6 +66,8 @@ export default class LibndxAdapter implements Libndx {
         LibndxAdapter.getOnDiscoveredProto()
         LibndxAdapter.getOnConnectedProto()
         LibndxAdapter.getOnRssiProto()
+        LibndxAdapter.getOnUsbDataProto()
+
         const lib = LibndxAdapter.koffiLoad(this.libndxPath)
 
         const wrap1 = (f: (a: string) => string) => (args: [string]) =>
@@ -94,6 +98,11 @@ export default class LibndxAdapter implements Libndx {
                 f(args[0], args[1], args[2])
 
         const wrapDiscoverBleUuid =
+            (f: (a: string, b: unknown) => string) =>
+            (args: [string, unknown]) =>
+                f(args[0], args[1])
+
+        const wrapStartUsb =
             (f: (a: string, b: unknown) => string) =>
             (args: [string, unknown]) =>
                 f(args[0], args[1])
@@ -131,8 +140,10 @@ export default class LibndxAdapter implements Libndx {
             create_usb_backend: wrap1(
                 lib.func('str create_usb_backend(str config)')
             ),
-            start_usb_backend: wrap1(
-                lib.func('str start_usb_backend(str serial)')
+            start_usb_backend: wrapStartUsb(
+                lib.func(
+                    'str start_usb_backend(str serial, OnUsbDataFn *on_data)'
+                )
             ),
             write_usb_backend: wrap2(
                 lib.func('str write_usb_backend(str serial, str value)')
@@ -290,8 +301,16 @@ export default class LibndxAdapter implements Libndx {
     }
 
     public startUsbBackend(options: UsbBackendOptions) {
-        const { serialNumber } = options
-        return JSON.parse(this.bindings.start_usb_backend([serialNumber]))
+        const { serialNumber, onData } = options
+
+        const registeredOnData = LibndxAdapter.koffiRegister(
+            onData ?? (() => {}),
+            LibndxAdapter.koffiPointer(LibndxAdapter.getOnUsbDataProto()!)
+        )
+
+        return JSON.parse(
+            this.bindings.start_usb_backend([serialNumber, registeredOnData])
+        )
     }
 
     public writeUsbBackend(options: WriteUsbBackendOptions) {
@@ -332,6 +351,15 @@ export default class LibndxAdapter implements Libndx {
             )
         }
         return this.onRssiProto
+    }
+
+    private static getOnUsbDataProto() {
+        if (!this.onUsbDataProto) {
+            this.onUsbDataProto = LibndxAdapter.koffiProto(
+                'void OnUsbDataFn(uint8 *data, int length, double timestamp_sec)'
+            )
+        }
+        return this.onUsbDataProto
     }
 
     private static getOnDiscoveredProto() {
@@ -416,6 +444,7 @@ export interface CharacteristicCallback {
 
 export interface UsbBackendOptions {
     serialNumber: string
+    onData?: (data: Buffer, length: number, timestampSec: number) => void
 }
 
 export interface WriteUsbBackendOptions extends UsbBackendOptions {
@@ -431,7 +460,7 @@ export interface LibndxBindings {
     set_ble_rssi_interval(args: [string, number, unknown]): string
     stop_ble_backend(args: [string]): string
     create_usb_backend(args: [string]): string
-    start_usb_backend(args: [string]): string
+    start_usb_backend(args: [string, unknown]): string
     write_usb_backend(args: [string, string]): string
     stop_usb_backend(args: [string]): string
 }

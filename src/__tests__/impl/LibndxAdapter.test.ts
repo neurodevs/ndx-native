@@ -68,7 +68,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static readonly callsToStopBle: string[][] = []
 
     private static readonly callsToCreateUsb: string[][] = []
-    private static readonly callsToStartUsb: string[][] = []
+    private static readonly callsToStartUsb: unknown[][] = []
     private static readonly callsToWriteUsb: string[][] = []
     private static readonly callsToStopUsb: string[][] = []
 
@@ -126,7 +126,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 'str set_ble_rssi_interval(str uuid, int interval_ms, OnRssiFn *on_rssi)',
                 'str stop_ble_backend(str uuid)',
                 'str create_usb_backend(str config)',
-                'str start_usb_backend(str serial)',
+                'str start_usb_backend(str serial, OnUsbDataFn *on_data)',
                 'str write_usb_backend(str serial, str value)',
                 'str stop_usb_backend(str serial)',
             ],
@@ -486,6 +486,61 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
+    protected static async registersExpectedStartUsbBackendSignatureWithOnData() {
+        const sig = this.koffiFuncSignatures!.find((s) =>
+            s.startsWith('str start_usb_backend(')
+        )
+
+        assert.isEqual(
+            sig,
+            'str start_usb_backend(str serial, OnUsbDataFn *on_data)',
+            'start_usb_backend was not registered with an onData callback param!'
+        )
+    }
+
+    @test()
+    protected static async startUsbBackendPassesOnDataCallbackToBinding() {
+        this.startUsbBackend(() => {})
+
+        assert.isFunction(
+            this.callsToStartUsb[0][1],
+            'startUsbBackend did not pass an onData callback to the binding!'
+        )
+    }
+
+    @test()
+    protected static async startUsbBackendInvokesOnDataWithReceivedData() {
+        let receivedData: Buffer | undefined
+        let receivedLength: number | undefined
+        let receivedTimestamp: number | undefined
+
+        this.startUsbBackend((data, length, timestampSec) => {
+            receivedData = data
+            receivedLength = length
+            receivedTimestamp = timestampSec
+        })
+
+        const registeredOnData = this.callsToStartUsb[0][1] as (
+            data: Buffer,
+            length: number,
+            timestampSec: number
+        ) => void
+
+        const fakeData = Buffer.from([1, 2, 3])
+        registeredOnData(fakeData, fakeData.length, 123.456)
+
+        assert.isEqualDeep(
+            { receivedData, receivedLength, receivedTimestamp },
+            {
+                receivedData: fakeData,
+                receivedLength: fakeData.length,
+                receivedTimestamp: 123.456,
+            },
+            'onData was not invoked with expected data, length, and timestampSec!'
+        )
+    }
+
+    @test()
     protected static async startUsbBackendReturnsJson() {
         const json = this.startUsbBackend()
 
@@ -598,9 +653,12 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
     }
 
-    private static startUsbBackend() {
+    private static startUsbBackend(
+        onData?: (data: Buffer, length: number, timestampSec: number) => void
+    ) {
         return this.instance.startUsbBackend({
             serialNumber: this.usbSerialNumber,
+            onData,
         })
     }
 
@@ -666,7 +724,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 this.callsToCreateUsb.push(args)
                 return JSON.stringify(this.successfulResult)
             },
-            start_usb_backend: (args) => {
+            start_usb_backend: (args: any) => {
                 this.callsToStartUsb.push(args)
                 return JSON.stringify(this.successfulResult)
             },
