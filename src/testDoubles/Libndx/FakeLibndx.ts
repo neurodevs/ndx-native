@@ -10,6 +10,7 @@ import {
     NativeResult,
     BleRssiOptions,
     DiscoverBleUuidOptions,
+    StartUsbBackendOptions,
 } from '../../impl/LibndxAdapter.js'
 
 export default class FakeLibndx implements Libndx {
@@ -23,7 +24,7 @@ export default class FakeLibndx implements Libndx {
     public static callsToStopBleBackend: BleBackendOptions[] = []
     public static callsToSetBleRssiInterval: BleRssiOptions[] = []
     public static callsToCreateUsbBackend: UsbBackendOptions[] = []
-    public static callsToStartUsbBackend: UsbBackendOptions[] = []
+    public static callsToStartUsbBackend: StartUsbBackendOptions[] = []
     public static callsToWriteUsbBackend: WriteUsbBackendOptions[] = []
     public static callsToStopUsbBackend: UsbBackendOptions[] = []
 
@@ -73,7 +74,7 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
-    public startUsbBackend(options: UsbBackendOptions) {
+    public startUsbBackend(options: StartUsbBackendOptions) {
         FakeLibndx.callsToStartUsbBackend.push(options)
         return FakeLibndx.fakeResult
     }
