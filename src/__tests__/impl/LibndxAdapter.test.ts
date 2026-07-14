@@ -19,6 +19,8 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static koffiFuncSignatures?: string[]
     private static koffiProtoCalls?: string[]
     private static koffiStructCalls?: { name: string; fields: object }[]
+    private static koffiDecodeCalls?: unknown[][]
+    private static fakeDecodedUsbData?: Buffer
 
     private static readonly bleDeviceUuid = this.generateId()
     private static readonly bleCharacteristicUuid = this.generateId()
@@ -523,17 +525,23 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async startUsbBackendInvokesOnDataWithReceivedData() {
+    protected static async startUsbBackendDecodesRawPointerBeforeInvokingOnData() {
         this.startUsbBackend()
 
         const registeredOnData = this.callsToStartUsb[0][1] as (
-            data: Buffer,
+            data: unknown,
             length: number,
             timestampSec: number
         ) => void
 
-        const fakeData = Buffer.from([1, 2, 3])
-        registeredOnData(fakeData, fakeData.length, 123.456)
+        const fakePointer = 49611948672n
+        registeredOnData(fakePointer, 3, 123.456)
+
+        assert.isEqualDeep(
+            this.koffiDecodeCalls![0],
+            [fakePointer, 'uint8_t', 3],
+            'onData did not decode the raw pointer via koffi.decode!'
+        )
 
         assert.isEqualDeep(
             {
@@ -542,11 +550,16 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 receivedTimestamp: this.receivedTimestampSec,
             },
             {
-                receivedData: fakeData,
-                receivedLength: fakeData.length,
+                receivedData: this.fakeDecodedUsbData,
+                receivedLength: 3,
                 receivedTimestamp: 123.456,
             },
-            'onData was not invoked with expected data, length, and timestampSec!'
+            'onData was not invoked with the decoded Buffer, length, and timestampSec!'
+        )
+
+        assert.isTrue(
+            Buffer.isBuffer(this.receivedUsbData),
+            'onData was not invoked with a real Buffer instance!'
         )
     }
 
@@ -765,12 +778,23 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         this.koffiFuncSignatures = []
         this.koffiProtoCalls = []
         this.koffiStructCalls = []
+        this.koffiDecodeCalls = []
         LibndxAdapter.resetKoffiCache()
         this.fakeKoffiLoad()
         this.fakeKoffiRegister()
         this.fakeKoffiProto()
         this.fakeKoffiPointer()
         this.fakeKoffiStruct()
+        this.fakeKoffiDecode()
+    }
+
+    private static fakeKoffiDecode() {
+        this.fakeDecodedUsbData = Buffer.from([1, 2, 3])
+
+        LibndxAdapter.koffiDecode = ((...args: unknown[]) => {
+            this.koffiDecodeCalls!.push(args)
+            return this.fakeDecodedUsbData
+        }) as any
     }
 
     private static fakeKoffiRegister() {

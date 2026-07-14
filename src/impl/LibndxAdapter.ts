@@ -7,6 +7,7 @@ export default class LibndxAdapter implements Libndx {
     public static koffiStruct = koffi.struct.bind(koffi)
     public static koffiProto = koffi.proto.bind(koffi)
     public static koffiPointer: typeof koffi.pointer = koffi.pointer.bind(koffi)
+    public static koffiDecode: typeof koffi.decode = koffi.decode.bind(koffi)
 
     private static charCallbackProto?: ReturnType<typeof koffi.proto>
     private static charCallbackStruct?: ReturnType<typeof koffi.struct>
@@ -304,7 +305,14 @@ export default class LibndxAdapter implements Libndx {
         const { serialNumber, onData } = options
 
         const registeredOnData = LibndxAdapter.koffiRegister(
-            onData,
+            (data: unknown, length: number, timestampSec: number) => {
+                const decoded = LibndxAdapter.koffiDecode(
+                    data,
+                    'uint8_t',
+                    length
+                )
+                onData(Buffer.from(decoded), length, timestampSec)
+            },
             LibndxAdapter.koffiPointer(LibndxAdapter.getOnUsbDataProto()!)
         )
 
