@@ -2,15 +2,15 @@ import { test, assert } from '@neurodevs/node-tdd'
 
 import LibndxAdapter, {
     CharacteristicCallback,
-    Libndx,
     LibndxBindings,
 } from '../../impl/LibndxAdapter.js'
 import type { NativePeripheral } from '../../impl/LibndxAdapter.js'
 import AbstractPackageTest from '../AbstractPackageTest.js'
 import FakeLibndx from '../../testDoubles/Libndx/FakeLibndx.js'
+import SpyLibndx from '../../testDoubles/Libndx/SpyLibndx.js'
 
 export default class LibndxAdapterTest extends AbstractPackageTest {
-    private static instance: Libndx
+    private static instance: SpyLibndx
     private static libndxPath = '/opt/local/lib/libndx.dylib'
     private static shouldThrowWhenLoadingBindings: boolean
     private static fakeBindings: LibndxBindings
@@ -95,6 +95,8 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         this.fakeBindings = this.FakeBindings()
         this.resetCallsToFakeBindings()
         this.clearAndFakeFfi()
+
+        LibndxAdapter.Class = SpyLibndx
 
         this.resetInstance()
         this.instance = this.LibndxAdapter()
@@ -564,6 +566,19 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
+    protected static async startUsbBackendRetainsOnDataCallbackToPreventGc() {
+        this.startUsbBackend()
+
+        const registeredOnData = this.callsToStartUsb[0][1]
+        const retainedCallbacks = this.instance.getRegisteredCallbacks()
+
+        assert.isTrue(
+            retainedCallbacks.includes(registeredOnData),
+            'startUsbBackend did not retain the registered onData callback! Without a reference kept alive, koffi will garbage collect the callback and the native backend will stop invoking it after the first sample.'
+        )
+    }
+
+    @test()
     protected static async startUsbBackendReturnsJson() {
         const json = this.startUsbBackend()
 
@@ -869,6 +884,6 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     private static LibndxAdapter() {
-        return LibndxAdapter.getInstance()
+        return LibndxAdapter.getInstance() as SpyLibndx
     }
 }

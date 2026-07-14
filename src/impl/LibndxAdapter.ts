@@ -18,9 +18,10 @@ export default class LibndxAdapter implements Libndx {
 
     private static instance?: Libndx
 
+    protected registeredCallbacks: unknown[] = []
+
     private libndxPath: string
     private bindings!: LibndxBindings
-    private registeredCallbacks: unknown[] = []
 
     protected constructor(options?: LibndxAdapterOptions) {
         const { libndxPath = '/opt/local/lib/libndx.dylib' } = options ?? {}
@@ -32,7 +33,7 @@ export default class LibndxAdapter implements Libndx {
 
     public static getInstance(options?: LibndxAdapterOptions) {
         if (!this.instance) {
-            this.setInstance(new this(options))
+            this.setInstance(new (this.Class ?? this)(options))
         }
         return this.instance!
     }
@@ -315,6 +316,8 @@ export default class LibndxAdapter implements Libndx {
             },
             LibndxAdapter.koffiPointer(LibndxAdapter.getOnUsbDataProto()!)
         )
+
+        this.registeredCallbacks.push(registeredOnData)
 
         return JSON.parse(
             this.bindings.start_usb_backend([serialNumber, registeredOnData])
