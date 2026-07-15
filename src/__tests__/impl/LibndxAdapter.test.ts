@@ -517,6 +517,19 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
+    protected static async registersOnUsbDataProtoWithExpectedSignature() {
+        const proto = this.koffiProtoCalls!.find((s) =>
+            s.includes('OnUsbDataFn')
+        )
+
+        assert.isEqual(
+            proto,
+            'void OnUsbDataFn(uint8 *data, uint64 length, double timestamp_sec)',
+            'OnUsbDataFn proto must declare length as uint64 to match the native size_t parameter!'
+        )
+    }
+
+    @test()
     protected static async startUsbBackendPassesOnDataCallbackToBinding() {
         this.startUsbBackend()
 

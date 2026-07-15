@@ -367,7 +367,7 @@ export default class LibndxAdapter implements Libndx {
     private static getOnUsbDataProto() {
         if (!this.onUsbDataProto) {
             this.onUsbDataProto = LibndxAdapter.koffiProto(
-                'void OnUsbDataFn(uint8 *data, int length, double timestamp_sec)'
+                'void OnUsbDataFn(uint8 *data, uint64 length, double timestamp_sec)'
             )
         }
         return this.onUsbDataProto
