@@ -337,7 +337,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         assert.isEqualDeep(
             { uuid, charCallbacks },
             { uuid: this.bleDeviceUuid, charCallbacks: this.charCallbacks },
-            'startBleGattBackend did not pass expected uuid to binding!'
+            'startBleGattBackend did not call binding with expected args!'
         )
     }
 

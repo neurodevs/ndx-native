@@ -350,16 +350,9 @@ export default class LibndxAdapter implements Libndx {
     ) {
         const { deviceUuid, onData } = options
 
-        const registeredOnData = LibndxAdapter.koffiRegister(
-            (data: unknown, length: number, timestampSec: number) => {
-                const decoded = LibndxAdapter.koffiDecode(
-                    data,
-                    'uint8_t',
-                    length
-                )
-                onData(Buffer.from(decoded), length, timestampSec)
-            },
-            LibndxAdapter.koffiPointer(LibndxAdapter.getOnDataProto()!)
+        const registeredOnData = LibndxAdapter.registerOnData(
+            onData,
+            LibndxAdapter.getOnDataProto()!
         )
 
         this.registeredCallbacks.push(registeredOnData)
@@ -390,16 +383,9 @@ export default class LibndxAdapter implements Libndx {
     public startUsbBackend(options: StartUsbBackendOptions) {
         const { serialNumber, onData } = options
 
-        const registeredOnData = LibndxAdapter.koffiRegister(
-            (data: unknown, length: number, timestampSec: number) => {
-                const decoded = LibndxAdapter.koffiDecode(
-                    data,
-                    'uint8_t',
-                    length
-                )
-                onData(Buffer.from(decoded), length, timestampSec)
-            },
-            LibndxAdapter.koffiPointer(LibndxAdapter.getOnDataProto()!)
+        const registeredOnData = LibndxAdapter.registerOnData(
+            onData,
+            LibndxAdapter.getOnDataProto()!
         )
 
         this.registeredCallbacks.push(registeredOnData)
@@ -420,6 +406,19 @@ export default class LibndxAdapter implements Libndx {
     public stopUsbBackend(options: UsbBackendOptions) {
         const { serialNumber } = options
         return JSON.parse(this.bindings.stop_usb_backend([serialNumber]))
+    }
+
+    private static registerOnData(
+        onData: OnDataCallback,
+        proto: ReturnType<typeof koffi.proto>
+    ) {
+        return this.koffiRegister(
+            (data: unknown, length: number, timestampSec: number) => {
+                const decoded = this.koffiDecode(data, 'uint8_t', length)
+                onData(Buffer.from(decoded), length, timestampSec)
+            },
+            this.koffiPointer(proto)
+        )
     }
 
     private static getCharCallbackProto() {
@@ -558,8 +557,14 @@ export interface WriteBleGattCharOptions {
 export interface CharacteristicCallback {
     charUuid: string
     charName?: string
-    onData: (data: Buffer, length: number, timestampSec: number) => void
+    onData: OnDataCallback
 }
+
+export type OnDataCallback = (
+    data: Buffer,
+    length: number,
+    timestampSec: number
+) => void
 
 export interface UsbBackendOptions {
     serialNumber: string
