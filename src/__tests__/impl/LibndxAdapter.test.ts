@@ -3,6 +3,7 @@ import { test, assert } from '@neurodevs/node-tdd'
 import LibndxAdapter, {
     CharacteristicCallback,
     LibndxBindings,
+    NativeCharCallback,
     RegisteredCallbackPointer,
 } from '../../impl/LibndxAdapter.js'
 import type { NativePeripheral } from '../../impl/LibndxAdapter.js'
@@ -348,7 +349,21 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
 
         assert.isTrue(
             this.instance.getRegisteredCallbacks().includes(usbOnData),
-            'startBleGattBackend discarded callbacks retained by other backends! The adapter is a singleton, so overwriting registeredCallbacks lets koffi garbage collect callbacks that native code still holds.'
+            'startBleGattBackend discarded callbacks retained by other backends!'
+        )
+    }
+
+    @test()
+    protected static async startBleGattBackendRetainsCharCallbacksToPreventGc() {
+        this.startBleGattBackend()
+
+        const passedToBinding = this.callsToStartBleGatt[0]
+            .charCallbacks as unknown as NativeCharCallback[]
+        const retainedCallbacks = this.instance.getRegisteredCallbacks()
+
+        assert.isTrue(
+            retainedCallbacks.includes(passedToBinding[0].onData),
+            'startBleGattBackend did not retain the registered char callbacks!'
         )
     }
 
@@ -379,6 +394,20 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
             call.numCallbacks,
             this.charCallbacks.length,
             'registerBleGattCharCallbacks did not pass expected callback count to binding!'
+        )
+    }
+
+    @test()
+    protected static async registerBleGattCharCallbacksRetainsCharCallbacksToPreventGc() {
+        this.registerBleGattCharCallbacks()
+
+        const passedToBinding = this.callsToRegisterBleGattCharCallbacks[0]
+            .charCallbacks as NativeCharCallback[]
+        const retainedCallbacks = this.instance.getRegisteredCallbacks()
+
+        assert.isTrue(
+            retainedCallbacks.includes(passedToBinding[0].onData),
+            'registerBleGattCharCallbacks did not retain the registered char callbacks!'
         )
     }
 
