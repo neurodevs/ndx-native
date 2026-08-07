@@ -23,6 +23,7 @@ export default class FakeLibndx implements Libndx {
     public static callsToWriteBleGattChar: WriteBleGattCharOptions[] = []
     public static callsToStopBleGattBackend: BleGattBackendOptions[] = []
     public static callsToStartBleGattRssiPolling: BleGattRssiOptions[] = []
+    public static callsToStopBleGattRssiPolling: BleGattBackendOptions[] = []
     public static callsToCreateUsbBackend: UsbBackendOptions[] = []
     public static callsToStartUsbBackend: StartUsbBackendOptions[] = []
     public static callsToWriteUsbBackend: WriteUsbBackendOptions[] = []
@@ -66,6 +67,11 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
+    public stopBleGattRssiPolling(options: BleGattBackendOptions) {
+        FakeLibndx.callsToStopBleGattRssiPolling.push(options)
+        return FakeLibndx.fakeResult
+    }
+
     public stopBleGattBackend(options: BleGattBackendOptions) {
         FakeLibndx.callsToStopBleGattBackend.push(options)
         return FakeLibndx.fakeResult
@@ -100,6 +106,7 @@ export default class FakeLibndx implements Libndx {
         FakeLibndx.callsToWriteBleGattChar = []
         FakeLibndx.callsToStopBleGattBackend = []
         FakeLibndx.callsToStartBleGattRssiPolling = []
+        FakeLibndx.callsToStopBleGattRssiPolling = []
         FakeLibndx.callsToCreateUsbBackend = []
         FakeLibndx.callsToStartUsbBackend = []
         FakeLibndx.callsToWriteUsbBackend = []

@@ -297,6 +297,14 @@ export default class LibndxAdapter implements Libndx {
         )
     }
 
+    public stopBleGattRssiPolling(options: BleGattBackendOptions) {
+        const { deviceUuid } = options
+
+        return JSON.parse(
+            this.bindings.stop_ble_gatt_rssi_polling([deviceUuid])
+        )
+    }
+
     public stopBleGattBackend(options: BleGattBackendOptions) {
         const { deviceUuid } = options
         return JSON.parse(this.bindings.stop_ble_gatt_backend([deviceUuid]))
@@ -414,6 +422,7 @@ export interface Libndx {
     ): NativeResult
     writeBleGattChar(options: WriteBleGattCharOptions): NativeResult
     startBleGattRssiPolling(options: BleGattRssiOptions): NativeResult
+    stopBleGattRssiPolling(options: BleGattBackendOptions): NativeResult
     stopBleGattBackend(options: BleGattBackendOptions): NativeResult
     createUsbBackend(options: UsbBackendOptions): NativeResult
     startUsbBackend(options: StartUsbBackendOptions): NativeResult

@@ -433,6 +433,28 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
+    protected static async stopBleGattRssiPollingCallsBindingWithExpectedArgs() {
+        this.stopBleGattRssiPolling()
+
+        assert.isEqual(
+            this.callsToStopBleGattRssiPolling[0][0],
+            this.bleDeviceUuid,
+            'stopBleGattRssiPolling did not call binding with expected args!'
+        )
+    }
+
+    @test()
+    protected static async stopBleGattRssiPollingReturnsJson() {
+        const json = this.stopBleGattRssiPolling()
+
+        assert.isEqualDeep(
+            json,
+            this.successfulResult,
+            'stopBleGattRssiPolling did not return a JSON string!'
+        )
+    }
+
+    @test()
     protected static async stopBleGattBackendCallsBindingWithExpectedArgs() {
         this.stopBleGattBackend()
 
@@ -644,6 +666,12 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
 
     private static stopBleGattBackend() {
         return this.instance.stopBleGattBackend({
+            deviceUuid: this.bleDeviceUuid,
+        })
+    }
+
+    private static stopBleGattRssiPolling() {
+        return this.instance.stopBleGattRssiPolling({
             deviceUuid: this.bleDeviceUuid,
         })
     }
