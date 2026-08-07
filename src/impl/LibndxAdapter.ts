@@ -18,7 +18,7 @@ export default class LibndxAdapter implements Libndx {
 
     private static instance?: Libndx
 
-    protected registeredCallbacks: unknown[] = []
+    protected registeredCallbacks: RegisteredCallbackPointer[] = []
 
     private libndxPath: string
     private bindings!: LibndxBindings
@@ -85,23 +85,43 @@ export default class LibndxAdapter implements Libndx {
                 f(args[0], args[1], args[2])
 
         const wrapStartBleGatt =
-            (f: (a: string, b: unknown, c: unknown, d: number) => string) =>
-            (args: [string, unknown, unknown, number]) =>
+            (
+                f: (
+                    a: string,
+                    b: RegisteredCallbackPointer,
+                    c: NativeCharCallback[],
+                    d: number
+                ) => string
+            ) =>
+            (
+                args: [
+                    string,
+                    RegisteredCallbackPointer,
+                    NativeCharCallback[],
+                    number,
+                ]
+            ) =>
                 f(args[0], args[1], args[2], args[3])
 
         const wrapRegisterBleGattCharCallbacks =
-            (f: (a: string, b: unknown, c: number) => string) =>
-            (args: [string, unknown, number]) =>
+            (f: (a: string, b: NativeCharCallback[], c: number) => string) =>
+            (args: [string, NativeCharCallback[], number]) =>
                 f(args[0], args[1], args[2])
 
         const wrapStartBleGattRssiPolling =
-            (f: (a: string, b: number, c: unknown) => string) =>
-            (args: [string, number, unknown]) =>
+            (
+                f: (
+                    a: string,
+                    b: number,
+                    c: RegisteredCallbackPointer
+                ) => string
+            ) =>
+            (args: [string, number, RegisteredCallbackPointer]) =>
                 f(args[0], args[1], args[2])
 
         const wrapStrAndCallback =
-            (f: (a: string, b: unknown) => string) =>
-            (args: [string, unknown]) =>
+            (f: (a: string, b: RegisteredCallbackPointer) => string) =>
+            (args: [string, RegisteredCallbackPointer]) =>
                 f(args[0], args[1])
 
         this.bindings = {
@@ -217,7 +237,7 @@ export default class LibndxAdapter implements Libndx {
             LibndxAdapter.koffiPointer(LibndxAdapter.getOnConnectedProto()!)
         )
 
-        this.registeredCallbacks = charCallbacks.map(
+        const registered = charCallbacks.map(
             ({ charUuid, charName, onData }) => ({
                 charUuid,
                 charName,
@@ -230,12 +250,14 @@ export default class LibndxAdapter implements Libndx {
             })
         )
 
+        this.registeredCallbacks.push(...registered.map((c) => c.onData))
+
         return JSON.parse(
             this.bindings.start_ble_gatt_backend([
                 deviceUuid,
                 registeredOnConnected,
-                this.registeredCallbacks,
-                this.registeredCallbacks.length,
+                registered,
+                registered.length,
             ])
         )
     }
@@ -258,7 +280,7 @@ export default class LibndxAdapter implements Libndx {
             })
         )
 
-        this.registeredCallbacks.push(...registered)
+        this.registeredCallbacks.push(...registered.map((c) => c.onData))
 
         return JSON.parse(
             this.bindings.register_ble_gatt_char_callbacks([
@@ -480,6 +502,14 @@ export interface LibndxAdapterOptions {
     libndxPath?: string
 }
 
+export type RegisteredCallbackPointer = ReturnType<typeof koffi.register>
+
+export interface NativeCharCallback {
+    charUuid: string
+    charName?: string
+    onData: RegisteredCallbackPointer
+}
+
 export interface DiscoverBleUuidOptions {
     namePrefix: string
     onDiscovered: (uuid: string) => void
@@ -532,21 +562,29 @@ export interface WriteUsbBackendOptions extends UsbBackendOptions {
 }
 
 export interface LibndxBindings {
-    discover_ble_uuid(args: [string, unknown]): string
+    discover_ble_uuid(args: [string, RegisteredCallbackPointer]): string
 
     create_ble_gatt_backend(args: [string]): string
-    start_ble_gatt_backend(args: [string, unknown, unknown, number]): string
-    register_ble_gatt_char_callbacks(args: [string, unknown, number]): string
+    start_ble_gatt_backend(
+        args: [string, RegisteredCallbackPointer, NativeCharCallback[], number]
+    ): string
+    register_ble_gatt_char_callbacks(
+        args: [string, NativeCharCallback[], number]
+    ): string
     write_ble_gatt_char(args: [string, string, string]): string
-    start_ble_gatt_rssi_polling(args: [string, number, unknown]): string
+    start_ble_gatt_rssi_polling(
+        args: [string, number, RegisteredCallbackPointer]
+    ): string
     stop_ble_gatt_rssi_polling(args: [string]): string
     stop_ble_gatt_backend(args: [string]): string
 
     create_ble_advertisement_backend(args: [string]): string
-    start_ble_advertisement_backend(args: [string, unknown]): string
+    start_ble_advertisement_backend(
+        args: [string, RegisteredCallbackPointer]
+    ): string
 
     create_usb_backend(args: [string]): string
-    start_usb_backend(args: [string, unknown]): string
+    start_usb_backend(args: [string, RegisteredCallbackPointer]): string
     write_usb_backend(args: [string, string]): string
     stop_usb_backend(args: [string]): string
 }

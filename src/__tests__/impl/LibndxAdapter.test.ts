@@ -3,6 +3,7 @@ import { test, assert } from '@neurodevs/node-tdd'
 import LibndxAdapter, {
     CharacteristicCallback,
     LibndxBindings,
+    RegisteredCallbackPointer,
 } from '../../impl/LibndxAdapter.js'
 import type { NativePeripheral } from '../../impl/LibndxAdapter.js'
 import AbstractPackageTest from '../AbstractPackageTest.js'
@@ -100,10 +101,16 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static readonly callsToStopBleGatt: string[][] = []
 
     private static readonly callsToCreateBleAdvertisement: string[][] = []
-    private static readonly callsToStartBleAdvertisement: unknown[][] = []
+    private static readonly callsToStartBleAdvertisement: [
+        string,
+        RegisteredCallbackPointer,
+    ][] = []
 
     private static readonly callsToCreateUsb: string[][] = []
-    private static readonly callsToStartUsb: unknown[][] = []
+    private static readonly callsToStartUsb: [
+        string,
+        RegisteredCallbackPointer,
+    ][] = []
     private static readonly callsToWriteUsb: string[][] = []
     private static readonly callsToStopUsb: string[][] = []
 
@@ -322,18 +329,26 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     protected static async startBleGattBackendCallsBindingWithExpectedArgs() {
         this.startBleGattBackend()
 
-        assert.isEqual(
-            this.callsToStartBleGatt[0].uuid,
-            this.bleDeviceUuid,
-            'startBleGattBackend did not pass expected uuid to binding!'
-        )
-
-        debugger
+        const { uuid, charCallbacks } = this.callsToStartBleGatt[0]
 
         assert.isEqualDeep(
-            this.callsToStartBleGatt[0].charCallbacks,
-            this.charCallbacks,
-            'startBleGattBackend did not pass expected charCallbacks to binding!'
+            { uuid, charCallbacks },
+            { uuid: this.bleDeviceUuid, charCallbacks: this.charCallbacks },
+            'startBleGattBackend did not pass expected uuid to binding!'
+        )
+    }
+
+    @test()
+    protected static async startBleGattBackendRetainsCallbacksFromOtherBackends() {
+        this.startUsbBackend()
+        const usbOnData = this
+            .callsToStartUsb[0][1] as RegisteredCallbackPointer
+
+        this.startBleGattBackend()
+
+        assert.isTrue(
+            this.instance.getRegisteredCallbacks().includes(usbOnData),
+            'startBleGattBackend discarded callbacks retained by other backends! The adapter is a singleton, so overwriting registeredCallbacks lets koffi garbage collect callbacks that native code still holds.'
         )
     }
 
@@ -542,11 +557,8 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     protected static async startBleAdvertisementBackendDecodesRawPointerBeforeInvokingOnData() {
         this.startBleAdvertisementBackend()
 
-        const registeredOnData = this.callsToStartBleAdvertisement[0][1] as (
-            data: unknown,
-            length: number,
-            timestampSec: number
-        ) => void
+        const registeredOnData = this
+            .callsToStartBleAdvertisement[0][1] as unknown as OnDataCallback
 
         const fakePointer = 49611948672n
         registeredOnData(fakePointer, 3, 123.456)
@@ -648,11 +660,8 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     protected static async startUsbBackendDecodesRawPointerBeforeInvokingOnData() {
         this.startUsbBackend()
 
-        const registeredOnData = this.callsToStartUsb[0][1] as (
-            data: unknown,
-            length: number,
-            timestampSec: number
-        ) => void
+        const registeredOnData = this
+            .callsToStartUsb[0][1] as unknown as OnDataCallback
 
         const fakePointer = 49611948672n
         registeredOnData(fakePointer, 3, 123.456)
@@ -1080,6 +1089,12 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         return LibndxAdapter.getInstance() as SpyLibndx
     }
 }
+
+type OnDataCallback = (
+    data: unknown,
+    length: number,
+    timestampSec: number
+) => void
 
 interface KoffiCall {
     kind: 'type' | 'func'
