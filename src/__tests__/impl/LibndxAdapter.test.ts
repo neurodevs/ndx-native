@@ -106,6 +106,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         string,
         RegisteredCallbackPointer,
     ][] = []
+    private static readonly callsToStopBleAdvertisement: string[][] = []
 
     private static readonly callsToCreateUsb: string[][] = []
     private static readonly callsToStartUsb: [
@@ -173,6 +174,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 'str stop_ble_gatt_backend(str uuid)',
                 'str create_ble_advertisement_backend(str config)',
                 'str start_ble_advertisement_backend(str uuid, OnDataFn *on_data)',
+                'str stop_ble_advertisement_backend(str uuid)',
                 'str create_usb_backend(str config)',
                 'str start_usb_backend(str serial, OnDataFn *on_data)',
                 'str write_usb_backend(str serial, str value)',
@@ -643,6 +645,28 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
+    protected static async stopBleAdvertisementBackendCallsBindingWithExpectedArgs() {
+        this.stopBleAdvertisementBackend()
+
+        assert.isEqual(
+            this.callsToStopBleAdvertisement[0][0],
+            this.bleDeviceUuid,
+            'stopBleAdvertisementBackend did not call binding with expected args!'
+        )
+    }
+
+    @test()
+    protected static async stopBleAdvertisementBackendReturnsJson() {
+        const json = this.stopBleAdvertisementBackend()
+
+        assert.isEqualDeep(
+            json,
+            this.successfulResult,
+            'stopBleAdvertisementBackend did not return a JSON string!'
+        )
+    }
+
+    @test()
     protected static async createUsbBackendCallsBindingWithExpectedArgs() {
         this.createUsbBackend()
 
@@ -847,6 +871,12 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
     }
 
+    private static stopBleAdvertisementBackend() {
+        return this.instance.stopBleAdvertisementBackend({
+            deviceUuid: this.bleDeviceUuid,
+        })
+    }
+
     private static createBleAdvertisementBackend() {
         return this.instance.createBleAdvertisementBackend({
             deviceUuid: this.bleDeviceUuid,
@@ -943,6 +973,10 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 this.callsToStartBleAdvertisement.push(args)
                 return JSON.stringify(this.successfulResult)
             },
+            stop_ble_advertisement_backend: (args) => {
+                this.callsToStopBleAdvertisement.push(args)
+                return JSON.stringify(this.successfulResult)
+            },
             create_usb_backend: (args) => {
                 this.callsToCreateUsb.push(args)
                 return JSON.stringify(this.successfulResult)
@@ -972,6 +1006,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         this.callsToStopBleGattRssiPolling.length = 0
         this.callsToCreateBleAdvertisement.length = 0
         this.callsToStartBleAdvertisement.length = 0
+        this.callsToStopBleAdvertisement.length = 0
         this.callsToCreateUsb.length = 0
         this.callsToStartUsb.length = 0
         this.callsToWriteUsb.length = 0

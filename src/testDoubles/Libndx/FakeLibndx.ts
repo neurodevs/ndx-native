@@ -31,6 +31,7 @@ export default class FakeLibndx implements Libndx {
     public static callsToCreateBleAdvertisement: BleGattBackendOptions[] = []
     public static callsToStartBleAdvertisement: StartBleAdvertisementBackendOptions[] =
         []
+    public static callsToStopBleAdvertisement: BleGattBackendOptions[] = []
 
     public static callsToCreateUsbBackend: UsbBackendOptions[] = []
     public static callsToStartUsbBackend: StartUsbBackendOptions[] = []
@@ -97,6 +98,11 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
+    public stopBleAdvertisementBackend(options: BleGattBackendOptions) {
+        FakeLibndx.callsToStopBleAdvertisement.push(options)
+        return FakeLibndx.fakeResult
+    }
+
     public createUsbBackend(options: UsbBackendOptions) {
         FakeLibndx.callsToCreateUsbBackend.push(options)
         return FakeLibndx.fakeResult
@@ -129,6 +135,7 @@ export default class FakeLibndx implements Libndx {
         FakeLibndx.callsToStopBleGattRssiPolling = []
         FakeLibndx.callsToCreateBleAdvertisement = []
         FakeLibndx.callsToStartBleAdvertisement = []
+        FakeLibndx.callsToStopBleAdvertisement = []
         FakeLibndx.callsToCreateUsbBackend = []
         FakeLibndx.callsToStartUsbBackend = []
         FakeLibndx.callsToWriteUsbBackend = []

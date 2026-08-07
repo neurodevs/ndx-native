@@ -167,6 +167,9 @@ export default class LibndxAdapter implements Libndx {
                     'str start_ble_advertisement_backend(str uuid, OnDataFn *on_data)'
                 )
             ),
+            stop_ble_advertisement_backend: wrap1(
+                lib.func('str stop_ble_advertisement_backend(str uuid)')
+            ),
             create_usb_backend: wrap1(
                 lib.func('str create_usb_backend(str config)')
             ),
@@ -369,6 +372,14 @@ export default class LibndxAdapter implements Libndx {
         )
     }
 
+    public stopBleAdvertisementBackend(options: BleGattBackendOptions) {
+        const { deviceUuid } = options
+
+        return JSON.parse(
+            this.bindings.stop_ble_advertisement_backend([deviceUuid])
+        )
+    }
+
     public createUsbBackend(options: UsbBackendOptions) {
         const { serialNumber } = options
         const configJson = JSON.stringify({ serial_number: serialNumber })
@@ -489,6 +500,7 @@ export interface Libndx {
     startBleAdvertisementBackend(
         options: StartBleAdvertisementBackendOptions
     ): NativeResult
+    stopBleAdvertisementBackend(options: BleGattBackendOptions): NativeResult
 
     createUsbBackend(options: UsbBackendOptions): NativeResult
     startUsbBackend(options: StartUsbBackendOptions): NativeResult
@@ -582,6 +594,7 @@ export interface LibndxBindings {
     start_ble_advertisement_backend(
         args: [string, RegisteredCallbackPointer]
     ): string
+    stop_ble_advertisement_backend(args: [string]): string
 
     create_usb_backend(args: [string]): string
     start_usb_backend(args: [string, RegisteredCallbackPointer]): string
