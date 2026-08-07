@@ -225,7 +225,7 @@ export default class LibndxAdapter implements Libndx {
         )
     }
 
-    public createBleGattBackend(options: BleGattOptions) {
+    public createBleGattBackend(options: BleOptions) {
         const { deviceUuid } = options
         const configJson = JSON.stringify({ uuid: deviceUuid })
 
@@ -323,7 +323,7 @@ export default class LibndxAdapter implements Libndx {
         )
     }
 
-    public stopBleGattRssiPolling(options: BleGattOptions) {
+    public stopBleGattRssiPolling(options: BleOptions) {
         const { deviceUuid } = options
 
         return JSON.parse(
@@ -331,12 +331,12 @@ export default class LibndxAdapter implements Libndx {
         )
     }
 
-    public stopBleGattBackend(options: BleGattOptions) {
+    public stopBleGattBackend(options: BleOptions) {
         const { deviceUuid } = options
         return JSON.parse(this.bindings.stop_ble_gatt_backend([deviceUuid]))
     }
 
-    public createBleObserverBackend(options: BleGattOptions) {
+    public createBleObserverBackend(options: BleOptions) {
         const { deviceUuid } = options
         const configJson = JSON.stringify({ uuid: deviceUuid })
 
@@ -363,7 +363,7 @@ export default class LibndxAdapter implements Libndx {
         )
     }
 
-    public stopBleObserverBackend(options: BleGattOptions) {
+    public stopBleObserverBackend(options: BleOptions) {
         const { deviceUuid } = options
 
         return JSON.parse(this.bindings.stop_ble_observer_backend([deviceUuid]))
@@ -481,19 +481,19 @@ export default class LibndxAdapter implements Libndx {
 export interface Libndx {
     discoverBleUuid(options: DiscoverBleUuidOptions): NativeResult
 
-    createBleGattBackend(options: BleGattOptions): NativeResult
+    createBleGattBackend(options: BleOptions): NativeResult
     startBleGattBackend(options: StartBleGattOptions): NativeResult
     registerBleGattCharCallbacks(
         options: RegisterBleGattCharCallbacksOptions
     ): NativeResult
     writeBleGattChar(options: WriteBleGattCharOptions): NativeResult
     startBleGattRssiPolling(options: BleGattRssiOptions): NativeResult
-    stopBleGattRssiPolling(options: BleGattOptions): NativeResult
-    stopBleGattBackend(options: BleGattOptions): NativeResult
+    stopBleGattRssiPolling(options: BleOptions): NativeResult
+    stopBleGattBackend(options: BleOptions): NativeResult
 
-    createBleObserverBackend(options: BleGattOptions): NativeResult
+    createBleObserverBackend(options: BleOptions): NativeResult
     startBleObserverBackend(options: StartBleObserverOptions): NativeResult
-    stopBleObserverBackend(options: BleGattOptions): NativeResult
+    stopBleObserverBackend(options: BleOptions): NativeResult
 
     createUsbBackend(options: UsbOptions): NativeResult
     startUsbBackend(options: StartUsbOptions): NativeResult
@@ -520,20 +520,20 @@ export interface DiscoverBleUuidOptions {
     onDiscovered: (uuid: string) => void
 }
 
-export interface BleGattOptions {
+export interface BleOptions {
     deviceUuid: string
 }
 
-export interface StartBleGattOptions extends BleGattOptions {
+export interface StartBleGattOptions extends BleOptions {
     onConnected: (peripheral: NativePeripheral) => void
     charCallbacks: CharacteristicCallback[]
 }
 
-export interface RegisterBleGattCharCallbacksOptions extends BleGattOptions {
+export interface RegisterBleGattCharCallbacksOptions extends BleOptions {
     charCallbacks: CharacteristicCallback[]
 }
 
-export interface BleGattRssiOptions extends BleGattOptions {
+export interface BleGattRssiOptions extends BleOptions {
     intervalMs: number
     onRssi: (rssi: number) => void
 }
@@ -556,7 +556,7 @@ export type OnDataCallback = (
     timestampSec: number
 ) => void
 
-export interface StartBleObserverOptions extends BleGattOptions {
+export interface StartBleObserverOptions extends BleOptions {
     onAdvertisement: (
         data: Buffer,
         length: number,

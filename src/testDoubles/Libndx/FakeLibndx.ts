@@ -1,6 +1,6 @@
 import {
     RegisterBleGattCharCallbacksOptions,
-    BleGattOptions,
+    BleOptions,
     WriteBleGattCharOptions,
     UsbOptions,
     WriteUsbOptions,
@@ -19,19 +19,18 @@ export default class FakeLibndx implements Libndx {
 
     public static callsToDiscoverBleUuid: DiscoverBleUuidOptions[] = []
 
-    public static callsToCreateBleGattBackend: BleGattOptions[] = []
+    public static callsToCreateBleGattBackend: BleOptions[] = []
     public static callsToStartBleGattBackend: StartBleGattOptions[] = []
     public static callsToRegisterBleGattCharCallbacks: RegisterBleGattCharCallbacksOptions[] =
         []
     public static callsToWriteBleGattChar: WriteBleGattCharOptions[] = []
-    public static callsToStopBleGattBackend: BleGattOptions[] = []
+    public static callsToStopBleGattBackend: BleOptions[] = []
     public static callsToStartBleGattRssiPolling: BleGattRssiOptions[] = []
-    public static callsToStopBleGattRssiPolling: BleGattOptions[] = []
+    public static callsToStopBleGattRssiPolling: BleOptions[] = []
 
-    public static callsToCreateBleObserver: BleGattOptions[] = []
-    public static callsToStartBleObserver: StartBleObserverOptions[] =
-        []
-    public static callsToStopBleObserver: BleGattOptions[] = []
+    public static callsToCreateBleObserver: BleOptions[] = []
+    public static callsToStartBleObserver: StartBleObserverOptions[] = []
+    public static callsToStopBleObserver: BleOptions[] = []
 
     public static callsToCreateUsbBackend: UsbOptions[] = []
     public static callsToStartUsbBackend: StartUsbOptions[] = []
@@ -49,7 +48,7 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
-    public createBleGattBackend(options: BleGattOptions) {
+    public createBleGattBackend(options: BleOptions) {
         FakeLibndx.callsToCreateBleGattBackend.push(options)
         return FakeLibndx.fakeResult
     }
@@ -76,17 +75,17 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
-    public stopBleGattRssiPolling(options: BleGattOptions) {
+    public stopBleGattRssiPolling(options: BleOptions) {
         FakeLibndx.callsToStopBleGattRssiPolling.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public stopBleGattBackend(options: BleGattOptions) {
+    public stopBleGattBackend(options: BleOptions) {
         FakeLibndx.callsToStopBleGattBackend.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public createBleObserverBackend(options: BleGattOptions) {
+    public createBleObserverBackend(options: BleOptions) {
         FakeLibndx.callsToCreateBleObserver.push(options)
         return FakeLibndx.fakeResult
     }
@@ -96,7 +95,7 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
-    public stopBleObserverBackend(options: BleGattOptions) {
+    public stopBleObserverBackend(options: BleOptions) {
         FakeLibndx.callsToStopBleObserver.push(options)
         return FakeLibndx.fakeResult
     }
