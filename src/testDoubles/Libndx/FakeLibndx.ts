@@ -11,7 +11,7 @@ import {
     BleGattRssiOptions,
     DiscoverBleUuidOptions,
     StartUsbOptions,
-    StartBleAdvertisementOptions,
+    StartBleObserverOptions,
 } from '../../impl/LibndxAdapter.js'
 
 export default class FakeLibndx implements Libndx {
@@ -28,10 +28,10 @@ export default class FakeLibndx implements Libndx {
     public static callsToStartBleGattRssiPolling: BleGattRssiOptions[] = []
     public static callsToStopBleGattRssiPolling: BleGattOptions[] = []
 
-    public static callsToCreateBleAdvertisement: BleGattOptions[] = []
-    public static callsToStartBleAdvertisement: StartBleAdvertisementOptions[] =
+    public static callsToCreateBleObserver: BleGattOptions[] = []
+    public static callsToStartBleObserver: StartBleObserverOptions[] =
         []
-    public static callsToStopBleAdvertisement: BleGattOptions[] = []
+    public static callsToStopBleObserver: BleGattOptions[] = []
 
     public static callsToCreateUsbBackend: UsbOptions[] = []
     public static callsToStartUsbBackend: StartUsbOptions[] = []
@@ -86,18 +86,18 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
-    public createBleAdvertisementBackend(options: BleGattOptions) {
-        FakeLibndx.callsToCreateBleAdvertisement.push(options)
+    public createBleObserverBackend(options: BleGattOptions) {
+        FakeLibndx.callsToCreateBleObserver.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public startBleAdvertisementBackend(options: StartBleAdvertisementOptions) {
-        FakeLibndx.callsToStartBleAdvertisement.push(options)
+    public startBleObserverBackend(options: StartBleObserverOptions) {
+        FakeLibndx.callsToStartBleObserver.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public stopBleAdvertisementBackend(options: BleGattOptions) {
-        FakeLibndx.callsToStopBleAdvertisement.push(options)
+    public stopBleObserverBackend(options: BleGattOptions) {
+        FakeLibndx.callsToStopBleObserver.push(options)
         return FakeLibndx.fakeResult
     }
 
@@ -131,9 +131,9 @@ export default class FakeLibndx implements Libndx {
         FakeLibndx.callsToStopBleGattBackend = []
         FakeLibndx.callsToStartBleGattRssiPolling = []
         FakeLibndx.callsToStopBleGattRssiPolling = []
-        FakeLibndx.callsToCreateBleAdvertisement = []
-        FakeLibndx.callsToStartBleAdvertisement = []
-        FakeLibndx.callsToStopBleAdvertisement = []
+        FakeLibndx.callsToCreateBleObserver = []
+        FakeLibndx.callsToStartBleObserver = []
+        FakeLibndx.callsToStopBleObserver = []
         FakeLibndx.callsToCreateUsbBackend = []
         FakeLibndx.callsToStartUsbBackend = []
         FakeLibndx.callsToWriteUsbBackend = []

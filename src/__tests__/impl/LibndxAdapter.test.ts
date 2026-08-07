@@ -45,18 +45,18 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         },
     ]
 
-    private static receivedAdvertisementData: Buffer
-    private static receivedAdvertisementLength: number
-    private static receivedAdvertisementTimestampSec: number
+    private static receivedObserverData: Buffer
+    private static receivedObserverLength: number
+    private static receivedObserverTimestampSec: number
 
-    private static readonly bleAdvertisementOnDataCallback = (
+    private static readonly onAdvertisement = (
         data: Buffer,
         length: number,
         timestampSec: number
     ) => {
-        this.receivedAdvertisementData = data
-        this.receivedAdvertisementLength = length
-        this.receivedAdvertisementTimestampSec = timestampSec
+        this.receivedObserverData = data
+        this.receivedObserverLength = length
+        this.receivedObserverTimestampSec = timestampSec
     }
 
     private static receivedUsbData: Buffer
@@ -101,12 +101,12 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static readonly callsToStopBleGattRssiPolling: string[][] = []
     private static readonly callsToStopBleGatt: string[][] = []
 
-    private static readonly callsToCreateBleAdvertisement: string[][] = []
-    private static readonly callsToStartBleAdvertisement: [
+    private static readonly callsToCreateBleObserver: string[][] = []
+    private static readonly callsToStartBleObserver: [
         string,
         RegisteredCallbackPointer,
     ][] = []
-    private static readonly callsToStopBleAdvertisement: string[][] = []
+    private static readonly callsToStopBleObserver: string[][] = []
 
     private static readonly callsToCreateUsb: string[][] = []
     private static readonly callsToStartUsb: [
@@ -172,9 +172,9 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 'str start_ble_gatt_rssi_polling(str uuid, int interval_ms, OnRssiFn *on_rssi)',
                 'str stop_ble_gatt_rssi_polling(str uuid)',
                 'str stop_ble_gatt_backend(str uuid)',
-                'str create_ble_advertisement_backend(str config)',
-                'str start_ble_advertisement_backend(str uuid, OnDataFn *on_data)',
-                'str stop_ble_advertisement_backend(str uuid)',
+                'str create_ble_observer_backend(str config)',
+                'str start_ble_observer_backend(str uuid, OnDataFn *on_data)',
+                'str stop_ble_observer_backend(str uuid)',
                 'str create_usb_backend(str config)',
                 'str start_usb_backend(str serial, OnDataFn *on_data)',
                 'str write_usb_backend(str serial, str value)',
@@ -542,54 +542,54 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async createBleAdvertisementBackendCallsBindingWithExpectedArgs() {
-        this.createBleAdvertisementBackend()
+    protected static async createBleObserverBackendCallsBindingWithExpectedArgs() {
+        this.createBleObserverBackend()
 
         assert.isEqualDeep(
-            this.callsToCreateBleAdvertisement[0][0],
+            this.callsToCreateBleObserver[0][0],
             JSON.stringify({ uuid: this.bleDeviceUuid }),
-            'createBleAdvertisementBackend did not call binding with expected args!'
+            'createBleObserverBackend did not call binding with expected args!'
         )
     }
 
     @test()
-    protected static async createBleAdvertisementBackendReturnsJson() {
-        const json = this.createBleAdvertisementBackend()
+    protected static async createBleObserverBackendReturnsJson() {
+        const json = this.createBleObserverBackend()
 
         assert.isEqualDeep(
             json,
             this.successfulResult,
-            'createBleAdvertisementBackend did not return a JSON string!'
+            'createBleObserverBackend did not return a JSON string!'
         )
     }
 
     @test()
-    protected static async startBleAdvertisementBackendCallsBindingWithExpectedArgs() {
-        this.startBleAdvertisementBackend()
+    protected static async startBleObserverBackendCallsBindingWithExpectedArgs() {
+        this.startBleObserverBackend()
 
         assert.isEqual(
-            this.callsToStartBleAdvertisement[0][0],
+            this.callsToStartBleObserver[0][0],
             this.bleDeviceUuid,
-            'startBleAdvertisementBackend did not call binding with expected args!'
+            'startBleObserverBackend did not call binding with expected args!'
         )
     }
 
     @test()
-    protected static async startBleAdvertisementBackendPassesOnDataCallbackToBinding() {
-        this.startBleAdvertisementBackend()
+    protected static async startBleObserverBackendPassesOnDataCallbackToBinding() {
+        this.startBleObserverBackend()
 
         assert.isFunction(
-            this.callsToStartBleAdvertisement[0][1],
-            'startBleAdvertisementBackend did not pass an onData callback to the binding!'
+            this.callsToStartBleObserver[0][1],
+            'startBleObserverBackend did not pass an onData callback to the binding!'
         )
     }
 
     @test()
-    protected static async startBleAdvertisementBackendDecodesRawPointerBeforeInvokingOnData() {
-        this.startBleAdvertisementBackend()
+    protected static async startBleObserverBackendDecodesRawPointerBeforeInvokingOnData() {
+        this.startBleObserverBackend()
 
         const registeredOnData = this
-            .callsToStartBleAdvertisement[0][1] as unknown as OnDataCallback
+            .callsToStartBleObserver[0][1] as unknown as OnDataCallback
 
         const fakePointer = 49611948672n
         registeredOnData(fakePointer, 3, 123.456)
@@ -602,9 +602,9 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
 
         assert.isEqualDeep(
             {
-                receivedData: this.receivedAdvertisementData,
-                receivedLength: this.receivedAdvertisementLength,
-                receivedTimestamp: this.receivedAdvertisementTimestampSec,
+                receivedData: this.receivedObserverData,
+                receivedLength: this.receivedObserverLength,
+                receivedTimestamp: this.receivedObserverTimestampSec,
             },
             {
                 receivedData: Buffer.from(this.fakeDecodedData!),
@@ -615,54 +615,54 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         )
 
         assert.isTrue(
-            Buffer.isBuffer(this.receivedAdvertisementData),
+            Buffer.isBuffer(this.receivedObserverData),
             'onData was not invoked with a real Buffer instance!'
         )
     }
 
     @test()
-    protected static async startBleAdvertisementBackendRetainsOnDataCallbackToPreventGc() {
-        this.startBleAdvertisementBackend()
+    protected static async startBleObserverBackendRetainsOnDataCallbackToPreventGc() {
+        this.startBleObserverBackend()
 
-        const registeredOnData = this.callsToStartBleAdvertisement[0][1]
+        const registeredOnData = this.callsToStartBleObserver[0][1]
         const retainedCallbacks = this.instance.getRegisteredCallbacks()
 
         assert.isTrue(
             retainedCallbacks.includes(registeredOnData),
-            'startBleAdvertisementBackend did not retain the registered onData callback! Without a reference kept alive, koffi will garbage collect the callback and the native backend will stop invoking it after the first advertisement.'
+            'startBleObserverBackend did not retain the registered onData callback!'
         )
     }
 
     @test()
-    protected static async startBleAdvertisementBackendReturnsJson() {
-        const json = this.startBleAdvertisementBackend()
+    protected static async startBleObserverBackendReturnsJson() {
+        const json = this.startBleObserverBackend()
 
         assert.isEqualDeep(
             json,
             this.successfulResult,
-            'startBleAdvertisementBackend did not return a JSON string!'
+            'startBleObserverBackend did not return a JSON string!'
         )
     }
 
     @test()
-    protected static async stopBleAdvertisementBackendCallsBindingWithExpectedArgs() {
-        this.stopBleAdvertisementBackend()
+    protected static async stopBleObserverBackendCallsBindingWithExpectedArgs() {
+        this.stopBleObserverBackend()
 
         assert.isEqual(
-            this.callsToStopBleAdvertisement[0][0],
+            this.callsToStopBleObserver[0][0],
             this.bleDeviceUuid,
-            'stopBleAdvertisementBackend did not call binding with expected args!'
+            'stopBleObserverBackend did not call binding with expected args!'
         )
     }
 
     @test()
-    protected static async stopBleAdvertisementBackendReturnsJson() {
-        const json = this.stopBleAdvertisementBackend()
+    protected static async stopBleObserverBackendReturnsJson() {
+        const json = this.stopBleObserverBackend()
 
         assert.isEqualDeep(
             json,
             this.successfulResult,
-            'stopBleAdvertisementBackend did not return a JSON string!'
+            'stopBleObserverBackend did not return a JSON string!'
         )
     }
 
@@ -871,22 +871,22 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
     }
 
-    private static stopBleAdvertisementBackend() {
-        return this.instance.stopBleAdvertisementBackend({
+    private static stopBleObserverBackend() {
+        return this.instance.stopBleObserverBackend({
             deviceUuid: this.bleDeviceUuid,
         })
     }
 
-    private static createBleAdvertisementBackend() {
-        return this.instance.createBleAdvertisementBackend({
+    private static createBleObserverBackend() {
+        return this.instance.createBleObserverBackend({
             deviceUuid: this.bleDeviceUuid,
         })
     }
 
-    private static startBleAdvertisementBackend() {
-        return this.instance.startBleAdvertisementBackend({
+    private static startBleObserverBackend() {
+        return this.instance.startBleObserverBackend({
             deviceUuid: this.bleDeviceUuid,
-            onData: this.bleAdvertisementOnDataCallback,
+            onAdvertisement: this.onAdvertisement,
         })
     }
 
@@ -965,16 +965,16 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 this.callsToStopBleGatt.push(args)
                 return JSON.stringify(this.successfulResult)
             },
-            create_ble_advertisement_backend: (args) => {
-                this.callsToCreateBleAdvertisement.push(args)
+            create_ble_observer_backend: (args) => {
+                this.callsToCreateBleObserver.push(args)
                 return JSON.stringify(this.successfulResult)
             },
-            start_ble_advertisement_backend: (args: any) => {
-                this.callsToStartBleAdvertisement.push(args)
+            start_ble_observer_backend: (args: any) => {
+                this.callsToStartBleObserver.push(args)
                 return JSON.stringify(this.successfulResult)
             },
-            stop_ble_advertisement_backend: (args) => {
-                this.callsToStopBleAdvertisement.push(args)
+            stop_ble_observer_backend: (args) => {
+                this.callsToStopBleObserver.push(args)
                 return JSON.stringify(this.successfulResult)
             },
             create_usb_backend: (args) => {
@@ -1004,9 +1004,9 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         this.callsToStopBleGatt.length = 0
         this.callsToStartBleGattRssiPolling.length = 0
         this.callsToStopBleGattRssiPolling.length = 0
-        this.callsToCreateBleAdvertisement.length = 0
-        this.callsToStartBleAdvertisement.length = 0
-        this.callsToStopBleAdvertisement.length = 0
+        this.callsToCreateBleObserver.length = 0
+        this.callsToStartBleObserver.length = 0
+        this.callsToStopBleObserver.length = 0
         this.callsToCreateUsb.length = 0
         this.callsToStartUsb.length = 0
         this.callsToWriteUsb.length = 0

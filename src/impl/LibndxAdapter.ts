@@ -159,16 +159,16 @@ export default class LibndxAdapter implements Libndx {
             stop_ble_gatt_backend: wrap1(
                 lib.func('str stop_ble_gatt_backend(str uuid)')
             ),
-            create_ble_advertisement_backend: wrap1(
-                lib.func('str create_ble_advertisement_backend(str config)')
+            create_ble_observer_backend: wrap1(
+                lib.func('str create_ble_observer_backend(str config)')
             ),
-            start_ble_advertisement_backend: wrapStrAndCallback(
+            start_ble_observer_backend: wrapStrAndCallback(
                 lib.func(
-                    'str start_ble_advertisement_backend(str uuid, OnDataFn *on_data)'
+                    'str start_ble_observer_backend(str uuid, OnDataFn *on_data)'
                 )
             ),
-            stop_ble_advertisement_backend: wrap1(
-                lib.func('str stop_ble_advertisement_backend(str uuid)')
+            stop_ble_observer_backend: wrap1(
+                lib.func('str stop_ble_observer_backend(str uuid)')
             ),
             create_usb_backend: wrap1(
                 lib.func('str create_usb_backend(str config)')
@@ -336,39 +336,37 @@ export default class LibndxAdapter implements Libndx {
         return JSON.parse(this.bindings.stop_ble_gatt_backend([deviceUuid]))
     }
 
-    public createBleAdvertisementBackend(options: BleGattOptions) {
+    public createBleObserverBackend(options: BleGattOptions) {
         const { deviceUuid } = options
         const configJson = JSON.stringify({ uuid: deviceUuid })
 
         return JSON.parse(
-            this.bindings.create_ble_advertisement_backend([configJson])
+            this.bindings.create_ble_observer_backend([configJson])
         )
     }
 
-    public startBleAdvertisementBackend(options: StartBleAdvertisementOptions) {
-        const { deviceUuid, onData } = options
+    public startBleObserverBackend(options: StartBleObserverOptions) {
+        const { deviceUuid, onAdvertisement } = options
 
         const registeredOnData = LibndxAdapter.registerOnData(
-            onData,
+            onAdvertisement,
             LibndxAdapter.getOnDataProto()!
         )
 
         this.registeredCallbacks.push(registeredOnData)
 
         return JSON.parse(
-            this.bindings.start_ble_advertisement_backend([
+            this.bindings.start_ble_observer_backend([
                 deviceUuid,
                 registeredOnData,
             ])
         )
     }
 
-    public stopBleAdvertisementBackend(options: BleGattOptions) {
+    public stopBleObserverBackend(options: BleGattOptions) {
         const { deviceUuid } = options
 
-        return JSON.parse(
-            this.bindings.stop_ble_advertisement_backend([deviceUuid])
-        )
+        return JSON.parse(this.bindings.stop_ble_observer_backend([deviceUuid]))
     }
 
     public createUsbBackend(options: UsbOptions) {
@@ -493,11 +491,9 @@ export interface Libndx {
     stopBleGattRssiPolling(options: BleGattOptions): NativeResult
     stopBleGattBackend(options: BleGattOptions): NativeResult
 
-    createBleAdvertisementBackend(options: BleGattOptions): NativeResult
-    startBleAdvertisementBackend(
-        options: StartBleAdvertisementOptions
-    ): NativeResult
-    stopBleAdvertisementBackend(options: BleGattOptions): NativeResult
+    createBleObserverBackend(options: BleGattOptions): NativeResult
+    startBleObserverBackend(options: StartBleObserverOptions): NativeResult
+    stopBleObserverBackend(options: BleGattOptions): NativeResult
 
     createUsbBackend(options: UsbOptions): NativeResult
     startUsbBackend(options: StartUsbOptions): NativeResult
@@ -542,10 +538,6 @@ export interface BleGattRssiOptions extends BleGattOptions {
     onRssi: (rssi: number) => void
 }
 
-export interface StartBleAdvertisementOptions extends BleGattOptions {
-    onData: (data: Buffer, length: number, timestampSec: number) => void
-}
-
 export interface WriteBleGattCharOptions {
     deviceUuid: string
     charUuid: string
@@ -563,6 +555,14 @@ export type OnDataCallback = (
     length: number,
     timestampSec: number
 ) => void
+
+export interface StartBleObserverOptions extends BleGattOptions {
+    onAdvertisement: (
+        data: Buffer,
+        length: number,
+        timestampSec: number
+    ) => void
+}
 
 export interface UsbOptions {
     serialNumber: string
@@ -593,11 +593,11 @@ export interface LibndxBindings {
     stop_ble_gatt_rssi_polling(args: [string]): string
     stop_ble_gatt_backend(args: [string]): string
 
-    create_ble_advertisement_backend(args: [string]): string
-    start_ble_advertisement_backend(
+    create_ble_observer_backend(args: [string]): string
+    start_ble_observer_backend(
         args: [string, RegisteredCallbackPointer]
     ): string
-    stop_ble_advertisement_backend(args: [string]): string
+    stop_ble_observer_backend(args: [string]): string
 
     create_usb_backend(args: [string]): string
     start_usb_backend(args: [string, RegisteredCallbackPointer]): string
