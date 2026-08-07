@@ -84,17 +84,17 @@ export default class LibndxAdapter implements Libndx {
             (args: [string, string, string]) =>
                 f(args[0], args[1], args[2])
 
-        const wrapStartBle =
+        const wrapStartBleGatt =
             (f: (a: string, b: unknown, c: unknown, d: number) => string) =>
             (args: [string, unknown, unknown, number]) =>
                 f(args[0], args[1], args[2], args[3])
 
-        const wrapAddBleCharCallbacks =
+        const wrapRegisterBleGattCharCallbacks =
             (f: (a: string, b: unknown, c: number) => string) =>
             (args: [string, unknown, number]) =>
                 f(args[0], args[1], args[2])
 
-        const wrapSetBleRssiInterval =
+        const wrapStartBleGattRssiPolling =
             (f: (a: string, b: number, c: unknown) => string) =>
             (args: [string, number, unknown]) =>
                 f(args[0], args[1], args[2])
@@ -115,30 +115,32 @@ export default class LibndxAdapter implements Libndx {
                     'str discover_ble_uuid(str name_prefix, OnDiscoveredFn *on_discovered)'
                 )
             ),
-            create_ble_backend: wrap1(
-                lib.func('str create_ble_backend(str config)')
+            create_ble_gatt_backend: wrap1(
+                lib.func('str create_ble_gatt_backend(str config)')
             ),
-            start_ble_backend: wrapStartBle(
+            start_ble_gatt_backend: wrapStartBleGatt(
                 lib.func(
-                    'str start_ble_backend(str uuid, OnConnectedFn *on_connected, CharCallback *callbacks, int num_callbacks)'
+                    'str start_ble_gatt_backend(str uuid, OnConnectedFn *on_connected, CharCallback *callbacks, int num_callbacks)'
                 )
             ),
-            add_ble_char_callbacks: wrapAddBleCharCallbacks(
+            register_ble_gatt_char_callbacks: wrapRegisterBleGattCharCallbacks(
                 lib.func(
-                    'str add_ble_char_callbacks(str uuid, CharCallback *callbacks, int num_callbacks)'
+                    'str register_ble_gatt_char_callbacks(str uuid, CharCallback *callbacks, int num_callbacks)'
                 )
             ),
-            write_ble_characteristic: wrap3(
+            write_ble_gatt_char: wrap3(
                 lib.func(
-                    'str write_ble_characteristic(str uuid, str charUuid, str value)'
+                    'str write_ble_gatt_char(str uuid, str charUuid, str value)'
                 )
             ),
-            set_ble_rssi_interval: wrapSetBleRssiInterval(
+            start_ble_gatt_rssi_polling: wrapStartBleGattRssiPolling(
                 lib.func(
-                    'str set_ble_rssi_interval(str uuid, int interval_ms, OnRssiFn *on_rssi)'
+                    'str start_ble_gatt_rssi_polling(str uuid, int interval_ms, OnRssiFn *on_rssi)'
                 )
             ),
-            stop_ble_backend: wrap1(lib.func('str stop_ble_backend(str uuid)')),
+            stop_ble_gatt_backend: wrap1(
+                lib.func('str stop_ble_gatt_backend(str uuid)')
+            ),
             create_usb_backend: wrap1(
                 lib.func('str create_usb_backend(str config)')
             ),
@@ -196,14 +198,14 @@ export default class LibndxAdapter implements Libndx {
         )
     }
 
-    public createBleBackend(options: BleBackendOptions) {
+    public createBleGattBackend(options: BleGattBackendOptions) {
         const { deviceUuid } = options
         const configJson = JSON.stringify({ uuid: deviceUuid })
 
-        return JSON.parse(this.bindings.create_ble_backend([configJson]))
+        return JSON.parse(this.bindings.create_ble_gatt_backend([configJson]))
     }
 
-    public startBleBackend(options: StartBleBackendOptions) {
+    public startBleGattBackend(options: StartBleGattBackendOptions) {
         const { deviceUuid, onConnected, charCallbacks } = options
 
         const registeredOnConnected = LibndxAdapter.koffiRegister(
@@ -225,7 +227,7 @@ export default class LibndxAdapter implements Libndx {
         )
 
         return JSON.parse(
-            this.bindings.start_ble_backend([
+            this.bindings.start_ble_gatt_backend([
                 deviceUuid,
                 registeredOnConnected,
                 this.registeredCallbacks,
@@ -234,7 +236,9 @@ export default class LibndxAdapter implements Libndx {
         )
     }
 
-    public addBleCharCallbacks(options: AddBleCharCallbacksOptions) {
+    public registerBleGattCharCallbacks(
+        options: RegisterBleGattCharCallbacksOptions
+    ) {
         const { deviceUuid, charCallbacks } = options
 
         const registered = charCallbacks.map(
@@ -253,7 +257,7 @@ export default class LibndxAdapter implements Libndx {
         this.registeredCallbacks.push(...registered)
 
         return JSON.parse(
-            this.bindings.add_ble_char_callbacks([
+            this.bindings.register_ble_gatt_char_callbacks([
                 deviceUuid,
                 registered,
                 registered.length,
@@ -261,11 +265,11 @@ export default class LibndxAdapter implements Libndx {
         )
     }
 
-    public writeBleCharacteristic(options: WriteBleCharacteristicOptions) {
+    public writeBleGattChar(options: WriteBleGattCharOptions) {
         const { deviceUuid, charUuid: characteristicUuid, value } = options
 
         return JSON.parse(
-            this.bindings.write_ble_characteristic([
+            this.bindings.write_ble_gatt_char([
                 deviceUuid,
                 characteristicUuid,
                 value,
@@ -273,7 +277,7 @@ export default class LibndxAdapter implements Libndx {
         )
     }
 
-    public setBleRssiInterval(options: BleRssiOptions) {
+    public startBleGattRssiPolling(options: BleGattRssiOptions) {
         const { deviceUuid, intervalMs, onRssi } = options
 
         const registeredOnRssi = LibndxAdapter.koffiRegister(
@@ -282,7 +286,7 @@ export default class LibndxAdapter implements Libndx {
         )
 
         return JSON.parse(
-            this.bindings.set_ble_rssi_interval([
+            this.bindings.start_ble_gatt_rssi_polling([
                 deviceUuid,
                 intervalMs,
                 registeredOnRssi,
@@ -290,9 +294,9 @@ export default class LibndxAdapter implements Libndx {
         )
     }
 
-    public stopBleBackend(options: BleBackendOptions) {
+    public stopBleGattBackend(options: BleGattBackendOptions) {
         const { deviceUuid } = options
-        return JSON.parse(this.bindings.stop_ble_backend([deviceUuid]))
+        return JSON.parse(this.bindings.stop_ble_gatt_backend([deviceUuid]))
     }
 
     public createUsbBackend(options: UsbBackendOptions) {
@@ -400,12 +404,14 @@ export default class LibndxAdapter implements Libndx {
 
 export interface Libndx {
     discoverBleUuid(options: DiscoverBleUuidOptions): NativeResult
-    createBleBackend(options: BleBackendOptions): NativeResult
-    startBleBackend(options: StartBleBackendOptions): NativeResult
-    addBleCharCallbacks(options: AddBleCharCallbacksOptions): NativeResult
-    writeBleCharacteristic(options: WriteBleCharacteristicOptions): NativeResult
-    setBleRssiInterval(options: BleRssiOptions): NativeResult
-    stopBleBackend(options: BleBackendOptions): NativeResult
+    createBleGattBackend(options: BleGattBackendOptions): NativeResult
+    startBleGattBackend(options: StartBleGattBackendOptions): NativeResult
+    registerBleGattCharCallbacks(
+        options: RegisterBleGattCharCallbacksOptions
+    ): NativeResult
+    writeBleGattChar(options: WriteBleGattCharOptions): NativeResult
+    startBleGattRssiPolling(options: BleGattRssiOptions): NativeResult
+    stopBleGattBackend(options: BleGattBackendOptions): NativeResult
     createUsbBackend(options: UsbBackendOptions): NativeResult
     startUsbBackend(options: StartUsbBackendOptions): NativeResult
     writeUsbBackend(options: WriteUsbBackendOptions): NativeResult
@@ -423,25 +429,25 @@ export interface DiscoverBleUuidOptions {
     onDiscovered: (uuid: string) => void
 }
 
-export interface BleBackendOptions {
+export interface BleGattBackendOptions {
     deviceUuid: string
 }
 
-export interface StartBleBackendOptions extends BleBackendOptions {
+export interface StartBleGattBackendOptions extends BleGattBackendOptions {
     onConnected: (peripheral: NativePeripheral) => void
     charCallbacks: CharacteristicCallback[]
 }
 
-export interface AddBleCharCallbacksOptions extends BleBackendOptions {
+export interface RegisterBleGattCharCallbacksOptions extends BleGattBackendOptions {
     charCallbacks: CharacteristicCallback[]
 }
 
-export interface BleRssiOptions extends BleBackendOptions {
+export interface BleGattRssiOptions extends BleGattBackendOptions {
     intervalMs: number
     onRssi: (rssi: number) => void
 }
 
-export interface WriteBleCharacteristicOptions {
+export interface WriteBleGattCharOptions {
     deviceUuid: string
     charUuid: string
     value: string
@@ -467,12 +473,12 @@ export interface WriteUsbBackendOptions extends UsbBackendOptions {
 
 export interface LibndxBindings {
     discover_ble_uuid(args: [string, unknown]): string
-    create_ble_backend(args: [string]): string
-    start_ble_backend(args: [string, unknown, unknown, number]): string
-    add_ble_char_callbacks(args: [string, unknown, number]): string
-    write_ble_characteristic(args: [string, string, string]): string
-    set_ble_rssi_interval(args: [string, number, unknown]): string
-    stop_ble_backend(args: [string]): string
+    create_ble_gatt_backend(args: [string]): string
+    start_ble_gatt_backend(args: [string, unknown, unknown, number]): string
+    register_ble_gatt_char_callbacks(args: [string, unknown, number]): string
+    write_ble_gatt_char(args: [string, string, string]): string
+    start_ble_gatt_rssi_polling(args: [string, number, unknown]): string
+    stop_ble_gatt_backend(args: [string]): string
     create_usb_backend(args: [string]): string
     start_usb_backend(args: [string, unknown]): string
     write_usb_backend(args: [string, string]): string

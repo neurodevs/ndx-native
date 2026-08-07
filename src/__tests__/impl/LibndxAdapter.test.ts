@@ -25,7 +25,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static readonly bleDeviceUuid = this.generateId()
     private static readonly bleCharacteristicUuid = this.generateId()
     private static readonly bleValueToWrite = this.generateId()
-    private static readonly bleRssiIntervalMs = Math.random()
+    private static readonly bleGattRssiIntervalMs = Math.random()
 
     private static readonly usbSerialNumber = this.generateId()
     private static readonly usbValueToWrite = this.generateId()
@@ -64,24 +64,24 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         namePrefix: string
         onDiscovered: unknown
     }[] = []
-    private static readonly callsToCreateBle: string[][] = []
-    private static readonly callsToStartBle: {
+    private static readonly callsToCreateBleGatt: string[][] = []
+    private static readonly callsToStartBleGatt: {
         uuid: string
         onConnected: unknown
         charCallbacks: CharacteristicCallback[]
     }[] = []
-    private static readonly callsToAddBleCharCallbacks: {
+    private static readonly callsToRegisterBleGattCharCallbacks: {
         uuid: string
         charCallbacks: unknown
         numCallbacks: number
     }[] = []
-    private static readonly callsToWriteBle: string[][] = []
-    private static readonly callsToSetBleRssiInterval: {
+    private static readonly callsToWriteBleGatt: string[][] = []
+    private static readonly callsToStartBleGattRssiPolling: {
         uuid: string
         intervalMs: number
         onRssi: unknown
     }[] = []
-    private static readonly callsToStopBle: string[][] = []
+    private static readonly callsToStopBleGatt: string[][] = []
 
     private static readonly callsToCreateUsb: string[][] = []
     private static readonly callsToStartUsb: unknown[][] = []
@@ -137,12 +137,12 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
             this.koffiFuncSignatures,
             [
                 'str discover_ble_uuid(str name_prefix, OnDiscoveredFn *on_discovered)',
-                'str create_ble_backend(str config)',
-                'str start_ble_backend(str uuid, OnConnectedFn *on_connected, CharCallback *callbacks, int num_callbacks)',
-                'str add_ble_char_callbacks(str uuid, CharCallback *callbacks, int num_callbacks)',
-                'str write_ble_characteristic(str uuid, str charUuid, str value)',
-                'str set_ble_rssi_interval(str uuid, int interval_ms, OnRssiFn *on_rssi)',
-                'str stop_ble_backend(str uuid)',
+                'str create_ble_gatt_backend(str config)',
+                'str start_ble_gatt_backend(str uuid, OnConnectedFn *on_connected, CharCallback *callbacks, int num_callbacks)',
+                'str register_ble_gatt_char_callbacks(str uuid, CharCallback *callbacks, int num_callbacks)',
+                'str write_ble_gatt_char(str uuid, str charUuid, str value)',
+                'str start_ble_gatt_rssi_polling(str uuid, int interval_ms, OnRssiFn *on_rssi)',
+                'str stop_ble_gatt_backend(str uuid)',
                 'str create_usb_backend(str config)',
                 'str start_usb_backend(str serial, OnUsbDataFn *on_data)',
                 'str write_usb_backend(str serial, str value)',
@@ -214,16 +214,14 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     protected static async onConnectedReceivesPeripheral() {
         let received: NativePeripheral | undefined = undefined
 
-        this.startBleBackend((peripheral: NativePeripheral) => {
+        this.startBleGattBackend((peripheral: NativePeripheral) => {
             received = peripheral
         })
 
         const peripheral = { uuid: this.generateId(), name: 'Muse-1234' }
 
-        const registeredOnConnected = this.callsToStartBle[0].onConnected as (
-            uuid: string,
-            name: string
-        ) => void
+        const registeredOnConnected = this.callsToStartBleGatt[0]
+            .onConnected as (uuid: string, name: string) => void
         registeredOnConnected(peripheral.uuid, peripheral.name)
 
         assert.isEqualDeep(
@@ -293,180 +291,179 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async createBleBackendCallsBindingWithExpectedArgs() {
-        this.createBleBackend()
+    protected static async createBleGattBackendCallsBindingWithExpectedArgs() {
+        this.createBleGattBackend()
 
         assert.isEqualDeep(
-            this.callsToCreateBle[0][0],
+            this.callsToCreateBleGatt[0][0],
             JSON.stringify({ uuid: this.bleDeviceUuid }),
-            'createBleBackend did not call binding with expected args!'
+            'createBleGattBackend did not call binding with expected args!'
         )
     }
 
     @test()
-    protected static async createBleBackendReturnsJson() {
-        const json = this.createBleBackend()
+    protected static async createBleGattBackendReturnsJson() {
+        const json = this.createBleGattBackend()
 
         assert.isEqualDeep(
             json,
             this.successfulResult,
-            'createBleBackend did not return a JSON string!'
+            'createBleGattBackend did not return a JSON string!'
         )
     }
 
     @test()
-    protected static async startBleBackendCallsBindingWithExpectedArgs() {
-        this.startBleBackend()
+    protected static async startBleGattBackendCallsBindingWithExpectedArgs() {
+        this.startBleGattBackend()
 
         assert.isEqual(
-            this.callsToStartBle[0].uuid,
+            this.callsToStartBleGatt[0].uuid,
             this.bleDeviceUuid,
-            'startBleBackend did not pass expected uuid to binding!'
+            'startBleGattBackend did not pass expected uuid to binding!'
         )
 
         debugger
 
         assert.isEqualDeep(
-            this.callsToStartBle[0].charCallbacks,
+            this.callsToStartBleGatt[0].charCallbacks,
             this.charCallbacks,
-            'startBleBackend did not pass expected charCallbacks to binding!'
+            'startBleGattBackend did not pass expected charCallbacks to binding!'
         )
     }
 
     @test()
-    protected static async startBleBackendReturnsJson() {
-        const json = this.startBleBackend()
+    protected static async startBleGattBackendReturnsJson() {
+        const json = this.startBleGattBackend()
 
         assert.isEqualDeep(
             json,
             this.successfulResult,
-            'startBleBackend did not return a JSON string!'
+            'startBleGattBackend did not return a JSON string!'
         )
     }
 
     @test()
-    protected static async addBleCharCallbacksCallsBindingWithExpectedArgs() {
-        this.addBleCharCallbacks()
+    protected static async registerBleGattCharCallbacksCallsBindingWithExpectedArgs() {
+        this.registerBleGattCharCallbacks()
 
-        const call = this.callsToAddBleCharCallbacks[0]
+        const call = this.callsToRegisterBleGattCharCallbacks[0]
 
         assert.isEqual(
             call.uuid,
             this.bleDeviceUuid,
-            'addBleCharCallbacks did not pass expected uuid to binding!'
+            'registerBleGattCharCallbacks did not pass expected uuid to binding!'
         )
 
         assert.isEqual(
             call.numCallbacks,
             this.charCallbacks.length,
-            'addBleCharCallbacks did not pass expected callback count to binding!'
+            'registerBleGattCharCallbacks did not pass expected callback count to binding!'
         )
     }
 
     @test()
-    protected static async addBleCharCallbacksReturnsJson() {
-        const json = this.addBleCharCallbacks()
+    protected static async registerBleGattCharCallbacksReturnsJson() {
+        const json = this.registerBleGattCharCallbacks()
 
         assert.isEqualDeep(
             json,
             this.successfulResult,
-            'addBleCharCallbacks did not return a JSON string!'
+            'registerBleGattCharCallbacks did not return a JSON string!'
         )
     }
 
     @test()
-    protected static async writeBleCharacteristicCallsBindingWithExpectedArgs() {
-        this.writeBleCharacteristic()
+    protected static async writeBleGattCharCallsBindingWithExpectedArgs() {
+        this.writeBleGattChar()
 
         assert.isEqualDeep(
-            this.callsToWriteBle[0],
+            this.callsToWriteBleGatt[0],
             [
                 this.bleDeviceUuid,
                 this.bleCharacteristicUuid,
                 this.bleValueToWrite,
             ],
-            'writeBleCharacteristic did not call binding with expected args!'
+            'writeBleGattChar did not call binding with expected args!'
         )
     }
 
     @test()
-    protected static async writeBleCharacteristicReturnsJson() {
-        const json = this.writeBleCharacteristic()
+    protected static async writeBleGattCharReturnsJson() {
+        const json = this.writeBleGattChar()
 
         assert.isEqualDeep(
             json,
             { status: 200 },
-            'writeBleCharacteristic did not return a JSON string!'
+            'writeBleGattChar did not return a JSON string!'
         )
     }
 
     @test()
-    protected static async setBleRssiIntervalCallsBindingWithExpectedArgs() {
-        this.setBleRssiInterval()
+    protected static async startBleGattRssiPollingCallsBindingWithExpectedArgs() {
+        this.startBleGattRssiPolling()
 
-        const { uuid, intervalMs } = this.callsToSetBleRssiInterval[0]
+        const { uuid, intervalMs } = this.callsToStartBleGattRssiPolling[0]
 
         assert.isEqualDeep(
             { uuid, intervalMs },
             {
                 uuid: this.bleDeviceUuid,
-                intervalMs: this.bleRssiIntervalMs,
+                intervalMs: this.bleGattRssiIntervalMs,
             },
-            'setBleRssiInterval did not call binding with expected args!'
+            'startBleGattRssiPolling did not call binding with expected args!'
         )
 
         assert.isFunction(
-            this.callsToSetBleRssiInterval[0].onRssi,
-            'setBleRssiInterval did not pass an onRssi callback to the binding!'
+            this.callsToStartBleGattRssiPolling[0].onRssi,
+            'startBleGattRssiPolling did not pass an onRssi callback to the binding!'
         )
     }
 
     @test()
-    protected static async setBleRssiIntervalReturnsJson() {
-        const json = this.setBleRssiInterval()
+    protected static async startBleGattRssiPollingReturnsJson() {
+        const json = this.startBleGattRssiPolling()
 
         assert.isEqualDeep(
             json,
             this.successfulResult,
-            'setBleRssiInterval did not return a JSON string!'
+            'startBleGattRssiPolling did not return a JSON string!'
         )
     }
 
     @test()
-    protected static async setBleRssiIntervalInvokesOnRssiWithRssiValue() {
+    protected static async startBleGattRssiPollingInvokesOnRssiWithRssiValue() {
         let received: number | undefined
 
-        this.setBleRssiInterval((rssi: number) => {
+        this.startBleGattRssiPolling((rssi: number) => {
             received = rssi
         })
 
-        const registeredOnRssi = this.callsToSetBleRssiInterval[0].onRssi as (
-            rssi: number
-        ) => void
+        const registeredOnRssi = this.callsToStartBleGattRssiPolling[0]
+            .onRssi as (rssi: number) => void
         registeredOnRssi(-72)
 
         assert.isEqual(received, -72, 'onRssi was not invoked with rssi value!')
     }
 
     @test()
-    protected static async stopBleBackendCallsBindingWithExpectedArgs() {
-        this.stopBleBackend()
+    protected static async stopBleGattBackendCallsBindingWithExpectedArgs() {
+        this.stopBleGattBackend()
 
         assert.isEqual(
-            this.callsToStopBle[0][0],
+            this.callsToStopBleGatt[0][0],
             this.bleDeviceUuid,
-            'stopBleBackend did not call binding with expected args!'
+            'stopBleGattBackend did not call binding with expected args!'
         )
     }
 
     @test()
-    protected static async stopBleBackendReturnsJson() {
-        const json = this.stopBleBackend()
+    protected static async stopBleGattBackendReturnsJson() {
+        const json = this.stopBleGattBackend()
 
         assert.isEqualDeep(
             json,
             this.successfulResult,
-            'stopBleBackend did not return a JSON string!'
+            'stopBleGattBackend did not return a JSON string!'
         )
     }
 
@@ -653,47 +650,47 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
     }
 
-    private static createBleBackend() {
-        return this.instance.createBleBackend({
+    private static createBleGattBackend() {
+        return this.instance.createBleGattBackend({
             deviceUuid: this.bleDeviceUuid,
         })
     }
 
-    private static startBleBackend(
+    private static startBleGattBackend(
         onConnected?: (peripheral: NativePeripheral) => void
     ) {
-        return this.instance.startBleBackend({
+        return this.instance.startBleGattBackend({
             deviceUuid: this.bleDeviceUuid,
             onConnected: onConnected || (() => {}),
             charCallbacks: this.charCallbacks,
         })
     }
 
-    private static addBleCharCallbacks() {
-        return this.instance.addBleCharCallbacks({
+    private static registerBleGattCharCallbacks() {
+        return this.instance.registerBleGattCharCallbacks({
             deviceUuid: this.bleDeviceUuid,
             charCallbacks: this.charCallbacks,
         })
     }
 
-    private static writeBleCharacteristic() {
-        return this.instance.writeBleCharacteristic({
+    private static writeBleGattChar() {
+        return this.instance.writeBleGattChar({
             deviceUuid: this.bleDeviceUuid,
             charUuid: this.bleCharacteristicUuid,
             value: this.bleValueToWrite,
         })
     }
 
-    private static stopBleBackend() {
-        return this.instance.stopBleBackend({
+    private static stopBleGattBackend() {
+        return this.instance.stopBleGattBackend({
             deviceUuid: this.bleDeviceUuid,
         })
     }
 
-    private static setBleRssiInterval(onRssi?: (rssi: number) => void) {
-        return this.instance.setBleRssiInterval({
+    private static startBleGattRssiPolling(onRssi?: (rssi: number) => void) {
+        return this.instance.startBleGattRssiPolling({
             deviceUuid: this.bleDeviceUuid,
-            intervalMs: this.bleRssiIntervalMs,
+            intervalMs: this.bleGattRssiIntervalMs,
             onRssi: onRssi ?? (() => {}),
         })
     }
@@ -733,40 +730,40 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 })
                 return JSON.stringify(this.successfulResult)
             },
-            create_ble_backend: (args) => {
-                this.callsToCreateBle.push(args)
+            create_ble_gatt_backend: (args) => {
+                this.callsToCreateBleGatt.push(args)
                 return JSON.stringify(this.successfulResult)
             },
-            start_ble_backend: (args: any) => {
-                this.callsToStartBle.push({
+            start_ble_gatt_backend: (args: any) => {
+                this.callsToStartBleGatt.push({
                     uuid: args[0],
                     onConnected: args[1],
                     charCallbacks: args[2],
                 })
                 return JSON.stringify(this.successfulResult)
             },
-            add_ble_char_callbacks: (args: any) => {
-                this.callsToAddBleCharCallbacks.push({
+            register_ble_gatt_char_callbacks: (args: any) => {
+                this.callsToRegisterBleGattCharCallbacks.push({
                     uuid: args[0],
                     charCallbacks: args[1],
                     numCallbacks: args[2],
                 })
                 return JSON.stringify(this.successfulResult)
             },
-            write_ble_characteristic: (args) => {
-                this.callsToWriteBle.push(args)
+            write_ble_gatt_char: (args) => {
+                this.callsToWriteBleGatt.push(args)
                 return JSON.stringify(this.successfulResult)
             },
-            set_ble_rssi_interval: (args) => {
-                this.callsToSetBleRssiInterval.push({
+            start_ble_gatt_rssi_polling: (args) => {
+                this.callsToStartBleGattRssiPolling.push({
                     uuid: args[0],
                     intervalMs: args[1],
                     onRssi: args[2],
                 })
                 return JSON.stringify(this.successfulResult)
             },
-            stop_ble_backend: (args) => {
-                this.callsToStopBle.push(args)
+            stop_ble_gatt_backend: (args) => {
+                this.callsToStopBleGatt.push(args)
                 return JSON.stringify(this.successfulResult)
             },
             create_usb_backend: (args) => {
@@ -790,11 +787,11 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
 
     private static resetCallsToFakeBindings() {
         this.callsToDiscoverBle.length = 0
-        this.callsToCreateBle.length = 0
-        this.callsToStartBle.length = 0
-        this.callsToAddBleCharCallbacks.length = 0
-        this.callsToStopBle.length = 0
-        this.callsToSetBleRssiInterval.length = 0
+        this.callsToCreateBleGatt.length = 0
+        this.callsToStartBleGatt.length = 0
+        this.callsToRegisterBleGattCharCallbacks.length = 0
+        this.callsToStopBleGatt.length = 0
+        this.callsToStartBleGattRssiPolling.length = 0
         this.callsToCreateUsb.length = 0
         this.callsToStartUsb.length = 0
         this.callsToWriteUsb.length = 0

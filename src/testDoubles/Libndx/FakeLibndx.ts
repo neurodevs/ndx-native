@@ -1,14 +1,14 @@
 import {
-    AddBleCharCallbacksOptions,
-    BleBackendOptions,
-    WriteBleCharacteristicOptions,
+    RegisterBleGattCharCallbacksOptions,
+    BleGattBackendOptions,
+    WriteBleGattCharOptions,
     UsbBackendOptions,
     WriteUsbBackendOptions,
     Libndx,
     LibndxAdapterOptions,
-    StartBleBackendOptions,
+    StartBleGattBackendOptions,
     NativeResult,
-    BleRssiOptions,
+    BleGattRssiOptions,
     DiscoverBleUuidOptions,
     StartUsbBackendOptions,
 } from '../../impl/LibndxAdapter.js'
@@ -16,13 +16,13 @@ import {
 export default class FakeLibndx implements Libndx {
     public static callsToConstructor: (LibndxAdapterOptions | undefined)[] = []
     public static callsToDiscoverBleUuid: DiscoverBleUuidOptions[] = []
-    public static callsToCreateBleBackend: BleBackendOptions[] = []
-    public static callsToStartBleBackend: StartBleBackendOptions[] = []
-    public static callsToAddBleCharCallbacks: AddBleCharCallbacksOptions[] = []
-    public static callsToWriteBleCharacteristic: WriteBleCharacteristicOptions[] =
+    public static callsToCreateBleGattBackend: BleGattBackendOptions[] = []
+    public static callsToStartBleGattBackend: StartBleGattBackendOptions[] = []
+    public static callsToRegisterBleGattCharCallbacks: RegisterBleGattCharCallbacksOptions[] =
         []
-    public static callsToStopBleBackend: BleBackendOptions[] = []
-    public static callsToSetBleRssiInterval: BleRssiOptions[] = []
+    public static callsToWriteBleGattChar: WriteBleGattCharOptions[] = []
+    public static callsToStopBleGattBackend: BleGattBackendOptions[] = []
+    public static callsToStartBleGattRssiPolling: BleGattRssiOptions[] = []
     public static callsToCreateUsbBackend: UsbBackendOptions[] = []
     public static callsToStartUsbBackend: StartUsbBackendOptions[] = []
     public static callsToWriteUsbBackend: WriteUsbBackendOptions[] = []
@@ -39,33 +39,35 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
-    public createBleBackend(options: BleBackendOptions) {
-        FakeLibndx.callsToCreateBleBackend.push(options)
+    public createBleGattBackend(options: BleGattBackendOptions) {
+        FakeLibndx.callsToCreateBleGattBackend.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public startBleBackend(options: StartBleBackendOptions) {
-        FakeLibndx.callsToStartBleBackend.push(options)
+    public startBleGattBackend(options: StartBleGattBackendOptions) {
+        FakeLibndx.callsToStartBleGattBackend.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public addBleCharCallbacks(options: AddBleCharCallbacksOptions) {
-        FakeLibndx.callsToAddBleCharCallbacks.push(options)
+    public registerBleGattCharCallbacks(
+        options: RegisterBleGattCharCallbacksOptions
+    ) {
+        FakeLibndx.callsToRegisterBleGattCharCallbacks.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public writeBleCharacteristic(options: WriteBleCharacteristicOptions) {
-        FakeLibndx.callsToWriteBleCharacteristic.push(options)
+    public writeBleGattChar(options: WriteBleGattCharOptions) {
+        FakeLibndx.callsToWriteBleGattChar.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public setBleRssiInterval(options: BleRssiOptions) {
-        FakeLibndx.callsToSetBleRssiInterval.push(options)
+    public startBleGattRssiPolling(options: BleGattRssiOptions) {
+        FakeLibndx.callsToStartBleGattRssiPolling.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public stopBleBackend(options: BleBackendOptions) {
-        FakeLibndx.callsToStopBleBackend.push(options)
+    public stopBleGattBackend(options: BleGattBackendOptions) {
+        FakeLibndx.callsToStopBleGattBackend.push(options)
         return FakeLibndx.fakeResult
     }
 
@@ -92,12 +94,12 @@ export default class FakeLibndx implements Libndx {
     public static resetTestDouble() {
         FakeLibndx.callsToConstructor = []
         FakeLibndx.callsToDiscoverBleUuid = []
-        FakeLibndx.callsToCreateBleBackend = []
-        FakeLibndx.callsToStartBleBackend = []
-        FakeLibndx.callsToAddBleCharCallbacks = []
-        FakeLibndx.callsToWriteBleCharacteristic = []
-        FakeLibndx.callsToStopBleBackend = []
-        FakeLibndx.callsToSetBleRssiInterval = []
+        FakeLibndx.callsToCreateBleGattBackend = []
+        FakeLibndx.callsToStartBleGattBackend = []
+        FakeLibndx.callsToRegisterBleGattCharCallbacks = []
+        FakeLibndx.callsToWriteBleGattChar = []
+        FakeLibndx.callsToStopBleGattBackend = []
+        FakeLibndx.callsToStartBleGattRssiPolling = []
         FakeLibndx.callsToCreateUsbBackend = []
         FakeLibndx.callsToStartUsbBackend = []
         FakeLibndx.callsToWriteUsbBackend = []
