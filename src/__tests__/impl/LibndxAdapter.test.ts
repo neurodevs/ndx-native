@@ -20,6 +20,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static koffiProtoCalls?: string[]
     private static koffiStructCalls?: { name: string; fields: object }[]
     private static koffiDecodeCalls?: unknown[][]
+    private static koffiCalls?: KoffiCall[]
     private static fakeDecodedUsbData?: Buffer
 
     private static readonly bleDeviceUuid = this.generateId()
@@ -188,42 +189,11 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async registersOnRssiProtoBeforeLoadingBindings() {
-        const onRssiProtoIdx = this.koffiProtoCalls!.findIndex((s) =>
-            s.includes('OnRssiFn')
-        )
-        const firstFuncIdx = this.koffiFuncSignatures!.findIndex((s) =>
-            s.includes('OnRssiFn')
-        )
-        assert.isAbove(
-            onRssiProtoIdx,
-            -1,
-            'Did not register OnRssiFn proto before loading bindings!'
-        )
-        assert.isBelow(
-            onRssiProtoIdx,
-            firstFuncIdx + this.koffiProtoCalls!.length,
-            'OnRssiFn proto must be registered before bindings are loaded!'
-        )
-    }
-
-    @test()
-    protected static async registersOnDiscoveredProtoBeforeLoadingBindings() {
-        const onDiscoveredProtoIdx = this.koffiProtoCalls!.findIndex((s) =>
-            s.includes('OnDiscoveredFn')
-        )
-        const firstFuncIdx = this.koffiFuncSignatures!.findIndex((s) =>
-            s.includes('OnDiscoveredFn')
-        )
-        assert.isAbove(
-            onDiscoveredProtoIdx,
-            -1,
-            'Did not register OnDiscoveredFn proto before loading bindings!'
-        )
-        assert.isBelow(
-            onDiscoveredProtoIdx,
-            firstFuncIdx + this.koffiProtoCalls!.length,
-            'OnDiscoveredFn proto must be registered before bindings are loaded!'
+    protected static async registersTypesBeforeFuncsThatReferenceThem() {
+        assert.isEqualDeep(
+            this.funcsRegisteredBeforeTypes,
+            [],
+            'Every proto and struct must be registered before the first func signature that references it!'
         )
     }
 
@@ -800,6 +770,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         this.koffiProtoCalls = []
         this.koffiStructCalls = []
         this.koffiDecodeCalls = []
+        this.koffiCalls = []
         LibndxAdapter.resetKoffiCache()
         this.fakeKoffiLoad()
         this.fakeKoffiRegister()
@@ -829,6 +800,11 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static fakeKoffiProto() {
         LibndxAdapter.koffiProto = ((sig: string) => {
             this.koffiProtoCalls!.push(sig)
+            this.koffiCalls!.push({
+                kind: 'type',
+                name: sig.match(/\w+\s+(\w+)\s*\(/)![1],
+                signature: sig,
+            })
             return {} as any
         }) as any
     }
@@ -836,6 +812,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static fakeKoffiStruct() {
         LibndxAdapter.koffiStruct = ((name: string, fields: object) => {
             this.koffiStructCalls!.push({ name, fields })
+            this.koffiCalls!.push({ kind: 'type', name, signature: name })
             return {} as any
         }) as any
     }
@@ -846,6 +823,11 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
             return {
                 func: (sig: string) => {
                     this.koffiFuncSignatures!.push(sig)
+                    this.koffiCalls!.push({
+                        kind: 'func',
+                        name: sig.match(/\w+\s+(\w+)\s*\(/)![1],
+                        signature: sig,
+                    })
 
                     if (this.shouldThrowWhenLoadingBindings) {
                         throw new Error(this.fakeErrorMessage)
@@ -861,6 +843,35 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 },
             } as any
         }
+    }
+
+    private static get funcsRegisteredBeforeTypes() {
+        const violations: string[] = []
+
+        this.koffiCalls!.forEach((call, idx) => {
+            if (call.kind !== 'func') {
+                return
+            }
+
+            const referenced: string[] =
+                call.signature.match(this.koffiTypeName) ?? []
+
+            referenced.forEach((typeName) => {
+                const registeredAt = this.koffiCalls!.findIndex(
+                    (c) => c.kind === 'type' && c.name === typeName
+                )
+
+                if (registeredAt === -1 || registeredAt > idx) {
+                    violations.push(`${typeName} referenced by ${call.name}`)
+                }
+            })
+        })
+
+        return violations
+    }
+
+    private static get koffiTypeName() {
+        return /\b(?:\w+Fn|CharCallback)\b/g
     }
 
     private static get failedToLoadError() {
@@ -892,4 +903,10 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static LibndxAdapter() {
         return LibndxAdapter.getInstance() as SpyLibndx
     }
+}
+
+interface KoffiCall {
+    kind: 'type' | 'func'
+    name: string
+    signature: string
 }
