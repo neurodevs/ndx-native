@@ -155,6 +155,21 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
+    protected static async registersExpectedKoffiProtoSignatures() {
+        assert.isEqualDeep(
+            this.koffiProtoCalls,
+            [
+                'void CharCallbackFn(uint8 *data, int length, double timestamp_sec)',
+                'void OnDiscoveredFn(str uuid)',
+                'void OnConnectedFn(str uuid, str name)',
+                'void OnRssiFn(int rssi)',
+                'void OnUsbDataFn(uint8 *data, uint64 length, double timestamp_sec)',
+            ],
+            'Did not register expected koffi proto signatures! Note that OnUsbDataFn must declare length as uint64 to match the native size_t parameter!'
+        )
+    }
+
+    @test()
     protected static async registersCharCallbackStruct() {
         assert.isEqualDeep(
             this.koffiStructCalls,
@@ -499,19 +514,6 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
             this.callsToStartUsb[0][0],
             this.usbSerialNumber,
             'startUsbBackend did not call binding with expected args!'
-        )
-    }
-
-    @test()
-    protected static async registersOnUsbDataProtoWithExpectedSignature() {
-        const proto = this.koffiProtoCalls!.find((s) =>
-            s.includes('OnUsbDataFn')
-        )
-
-        assert.isEqual(
-            proto,
-            'void OnUsbDataFn(uint8 *data, uint64 length, double timestamp_sec)',
-            'OnUsbDataFn proto must declare length as uint64 to match the native size_t parameter!'
         )
     }
 
