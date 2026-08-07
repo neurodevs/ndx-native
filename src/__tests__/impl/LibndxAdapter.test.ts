@@ -170,7 +170,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async registersCharCallbackStruct() {
+    protected static async registersExpectedKoffiStructs() {
         assert.isEqualDeep(
             this.koffiStructCalls,
             [
