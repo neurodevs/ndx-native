@@ -138,6 +138,9 @@ export default class LibndxAdapter implements Libndx {
                     'str start_ble_gatt_rssi_polling(str uuid, int interval_ms, OnRssiFn *on_rssi)'
                 )
             ),
+            stop_ble_gatt_rssi_polling: wrap1(
+                lib.func('str stop_ble_gatt_rssi_polling(str uuid)')
+            ),
             stop_ble_gatt_backend: wrap1(
                 lib.func('str stop_ble_gatt_backend(str uuid)')
             ),
@@ -478,6 +481,7 @@ export interface LibndxBindings {
     register_ble_gatt_char_callbacks(args: [string, unknown, number]): string
     write_ble_gatt_char(args: [string, string, string]): string
     start_ble_gatt_rssi_polling(args: [string, number, unknown]): string
+    stop_ble_gatt_rssi_polling(args: [string]): string
     stop_ble_gatt_backend(args: [string]): string
     create_usb_backend(args: [string]): string
     start_usb_backend(args: [string, unknown]): string

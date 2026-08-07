@@ -81,6 +81,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         intervalMs: number
         onRssi: unknown
     }[] = []
+    private static readonly callsToStopBleGattRssiPolling: string[][] = []
     private static readonly callsToStopBleGatt: string[][] = []
 
     private static readonly callsToCreateUsb: string[][] = []
@@ -142,6 +143,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 'str register_ble_gatt_char_callbacks(str uuid, CharCallback *callbacks, int num_callbacks)',
                 'str write_ble_gatt_char(str uuid, str charUuid, str value)',
                 'str start_ble_gatt_rssi_polling(str uuid, int interval_ms, OnRssiFn *on_rssi)',
+                'str stop_ble_gatt_rssi_polling(str uuid)',
                 'str stop_ble_gatt_backend(str uuid)',
                 'str create_usb_backend(str config)',
                 'str start_usb_backend(str serial, OnUsbDataFn *on_data)',
@@ -762,6 +764,10 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 })
                 return JSON.stringify(this.successfulResult)
             },
+            stop_ble_gatt_rssi_polling: (args) => {
+                this.callsToStopBleGattRssiPolling.push(args)
+                return JSON.stringify(this.successfulResult)
+            },
             stop_ble_gatt_backend: (args) => {
                 this.callsToStopBleGatt.push(args)
                 return JSON.stringify(this.successfulResult)
@@ -792,6 +798,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         this.callsToRegisterBleGattCharCallbacks.length = 0
         this.callsToStopBleGatt.length = 0
         this.callsToStartBleGattRssiPolling.length = 0
+        this.callsToStopBleGattRssiPolling.length = 0
         this.callsToCreateUsb.length = 0
         this.callsToStartUsb.length = 0
         this.callsToWriteUsb.length = 0
