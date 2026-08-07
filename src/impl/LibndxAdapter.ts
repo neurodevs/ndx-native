@@ -14,7 +14,7 @@ export default class LibndxAdapter implements Libndx {
     private static onDiscoveredProto?: ReturnType<typeof koffi.proto>
     private static onConnectedProto?: ReturnType<typeof koffi.proto>
     private static onRssiProto?: ReturnType<typeof koffi.proto>
-    private static onUsbDataProto?: ReturnType<typeof koffi.proto>
+    private static onDataProto?: ReturnType<typeof koffi.proto>
 
     private static instance?: Libndx
 
@@ -52,7 +52,7 @@ export default class LibndxAdapter implements Libndx {
         delete this.onDiscoveredProto
         delete this.onConnectedProto
         delete this.onRssiProto
-        delete this.onUsbDataProto
+        delete this.onDataProto
     }
 
     private tryToLoadBindings() {
@@ -68,7 +68,7 @@ export default class LibndxAdapter implements Libndx {
         LibndxAdapter.getOnDiscoveredProto()
         LibndxAdapter.getOnConnectedProto()
         LibndxAdapter.getOnRssiProto()
-        LibndxAdapter.getOnUsbDataProto()
+        LibndxAdapter.getOnDataProto()
 
         const lib = LibndxAdapter.koffiLoad(this.libndxPath)
 
@@ -99,18 +99,13 @@ export default class LibndxAdapter implements Libndx {
             (args: [string, number, unknown]) =>
                 f(args[0], args[1], args[2])
 
-        const wrapDiscoverBleUuid =
-            (f: (a: string, b: unknown) => string) =>
-            (args: [string, unknown]) =>
-                f(args[0], args[1])
-
-        const wrapStartUsb =
+        const wrapStrAndCallback =
             (f: (a: string, b: unknown) => string) =>
             (args: [string, unknown]) =>
                 f(args[0], args[1])
 
         this.bindings = {
-            discover_ble_uuid: wrapDiscoverBleUuid(
+            discover_ble_uuid: wrapStrAndCallback(
                 lib.func(
                     'str discover_ble_uuid(str name_prefix, OnDiscoveredFn *on_discovered)'
                 )
@@ -147,13 +142,16 @@ export default class LibndxAdapter implements Libndx {
             create_ble_advertisement_backend: wrap1(
                 lib.func('str create_ble_advertisement_backend(str config)')
             ),
+            start_ble_advertisement_backend: wrapStrAndCallback(
+                lib.func(
+                    'str start_ble_advertisement_backend(str uuid, OnDataFn *on_data)'
+                )
+            ),
             create_usb_backend: wrap1(
                 lib.func('str create_usb_backend(str config)')
             ),
-            start_usb_backend: wrapStartUsb(
-                lib.func(
-                    'str start_usb_backend(str serial, OnUsbDataFn *on_data)'
-                )
+            start_usb_backend: wrapStrAndCallback(
+                lib.func('str start_usb_backend(str serial, OnDataFn *on_data)')
             ),
             write_usb_backend: wrap2(
                 lib.func('str write_usb_backend(str serial, str value)')
@@ -322,6 +320,33 @@ export default class LibndxAdapter implements Libndx {
         )
     }
 
+    public startBleAdvertisementBackend(
+        options: StartBleAdvertisementBackendOptions
+    ) {
+        const { deviceUuid, onData } = options
+
+        const registeredOnData = LibndxAdapter.koffiRegister(
+            (data: unknown, length: number, timestampSec: number) => {
+                const decoded = LibndxAdapter.koffiDecode(
+                    data,
+                    'uint8_t',
+                    length
+                )
+                onData(Buffer.from(decoded), length, timestampSec)
+            },
+            LibndxAdapter.koffiPointer(LibndxAdapter.getOnDataProto()!)
+        )
+
+        this.registeredCallbacks.push(registeredOnData)
+
+        return JSON.parse(
+            this.bindings.start_ble_advertisement_backend([
+                deviceUuid,
+                registeredOnData,
+            ])
+        )
+    }
+
     public createUsbBackend(options: UsbBackendOptions) {
         const { serialNumber } = options
         const configJson = JSON.stringify({ serial_number: serialNumber })
@@ -341,7 +366,7 @@ export default class LibndxAdapter implements Libndx {
                 )
                 onData(Buffer.from(decoded), length, timestampSec)
             },
-            LibndxAdapter.koffiPointer(LibndxAdapter.getOnUsbDataProto()!)
+            LibndxAdapter.koffiPointer(LibndxAdapter.getOnDataProto()!)
         )
 
         this.registeredCallbacks.push(registeredOnData)
@@ -391,13 +416,13 @@ export default class LibndxAdapter implements Libndx {
         return this.onRssiProto
     }
 
-    private static getOnUsbDataProto() {
-        if (!this.onUsbDataProto) {
-            this.onUsbDataProto = LibndxAdapter.koffiProto(
-                'void OnUsbDataFn(uint8 *data, uint64 length, double timestamp_sec)'
+    private static getOnDataProto() {
+        if (!this.onDataProto) {
+            this.onDataProto = LibndxAdapter.koffiProto(
+                'void OnDataFn(uint8 *data, uint64 length, double timestamp_sec)'
             )
         }
-        return this.onUsbDataProto
+        return this.onDataProto
     }
 
     private static getOnDiscoveredProto() {
@@ -439,6 +464,9 @@ export interface Libndx {
     stopBleGattBackend(options: BleGattBackendOptions): NativeResult
 
     createBleAdvertisementBackend(options: BleGattBackendOptions): NativeResult
+    startBleAdvertisementBackend(
+        options: StartBleAdvertisementBackendOptions
+    ): NativeResult
 
     createUsbBackend(options: UsbBackendOptions): NativeResult
     startUsbBackend(options: StartUsbBackendOptions): NativeResult
@@ -473,6 +501,10 @@ export interface RegisterBleGattCharCallbacksOptions extends BleGattBackendOptio
 export interface BleGattRssiOptions extends BleGattBackendOptions {
     intervalMs: number
     onRssi: (rssi: number) => void
+}
+
+export interface StartBleAdvertisementBackendOptions extends BleGattBackendOptions {
+    onData: (data: Buffer, length: number, timestampSec: number) => void
 }
 
 export interface WriteBleGattCharOptions {
@@ -511,6 +543,7 @@ export interface LibndxBindings {
     stop_ble_gatt_backend(args: [string]): string
 
     create_ble_advertisement_backend(args: [string]): string
+    start_ble_advertisement_backend(args: [string, unknown]): string
 
     create_usb_backend(args: [string]): string
     start_usb_backend(args: [string, unknown]): string

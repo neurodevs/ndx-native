@@ -43,6 +43,20 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         },
     ]
 
+    private static receivedAdvertisementData: Buffer
+    private static receivedAdvertisementLength: number
+    private static receivedAdvertisementTimestampSec: number
+
+    private static readonly bleAdvertisementOnDataCallback = (
+        data: Buffer,
+        length: number,
+        timestampSec: number
+    ) => {
+        this.receivedAdvertisementData = data
+        this.receivedAdvertisementLength = length
+        this.receivedAdvertisementTimestampSec = timestampSec
+    }
+
     private static receivedUsbData: Buffer
     private static receivedUsbLength: number
     private static receivedTimestampSec: number
@@ -86,6 +100,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static readonly callsToStopBleGatt: string[][] = []
 
     private static readonly callsToCreateBleAdvertisement: string[][] = []
+    private static readonly callsToStartBleAdvertisement: unknown[][] = []
 
     private static readonly callsToCreateUsb: string[][] = []
     private static readonly callsToStartUsb: unknown[][] = []
@@ -149,8 +164,9 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 'str stop_ble_gatt_rssi_polling(str uuid)',
                 'str stop_ble_gatt_backend(str uuid)',
                 'str create_ble_advertisement_backend(str config)',
+                'str start_ble_advertisement_backend(str uuid, OnDataFn *on_data)',
                 'str create_usb_backend(str config)',
-                'str start_usb_backend(str serial, OnUsbDataFn *on_data)',
+                'str start_usb_backend(str serial, OnDataFn *on_data)',
                 'str write_usb_backend(str serial, str value)',
                 'str stop_usb_backend(str serial)',
             ],
@@ -167,9 +183,9 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 'void OnDiscoveredFn(str uuid)',
                 'void OnConnectedFn(str uuid, str name)',
                 'void OnRssiFn(int rssi)',
-                'void OnUsbDataFn(uint8 *data, uint64 length, double timestamp_sec)',
+                'void OnDataFn(uint8 *data, uint64 length, double timestamp_sec)',
             ],
-            'Did not register expected koffi proto signatures! Note that OnUsbDataFn must declare length as uint64 to match the native size_t parameter!'
+            'Did not register expected koffi proto signatures! Note that OnDataFn must declare length as uint64 to match the native size_t parameter!'
         )
     }
 
@@ -502,6 +518,90 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
+    protected static async startBleAdvertisementBackendCallsBindingWithExpectedArgs() {
+        this.startBleAdvertisementBackend()
+
+        assert.isEqual(
+            this.callsToStartBleAdvertisement[0][0],
+            this.bleDeviceUuid,
+            'startBleAdvertisementBackend did not call binding with expected args!'
+        )
+    }
+
+    @test()
+    protected static async startBleAdvertisementBackendPassesOnDataCallbackToBinding() {
+        this.startBleAdvertisementBackend()
+
+        assert.isFunction(
+            this.callsToStartBleAdvertisement[0][1],
+            'startBleAdvertisementBackend did not pass an onData callback to the binding!'
+        )
+    }
+
+    @test()
+    protected static async startBleAdvertisementBackendDecodesRawPointerBeforeInvokingOnData() {
+        this.startBleAdvertisementBackend()
+
+        const registeredOnData = this.callsToStartBleAdvertisement[0][1] as (
+            data: unknown,
+            length: number,
+            timestampSec: number
+        ) => void
+
+        const fakePointer = 49611948672n
+        registeredOnData(fakePointer, 3, 123.456)
+
+        assert.isEqualDeep(
+            this.koffiDecodeCalls![0],
+            [fakePointer, 'uint8_t', 3],
+            'onData did not decode the raw pointer via koffi.decode!'
+        )
+
+        assert.isEqualDeep(
+            {
+                receivedData: this.receivedAdvertisementData,
+                receivedLength: this.receivedAdvertisementLength,
+                receivedTimestamp: this.receivedAdvertisementTimestampSec,
+            },
+            {
+                receivedData: this.fakeDecodedUsbData,
+                receivedLength: 3,
+                receivedTimestamp: 123.456,
+            },
+            'onData was not invoked with the decoded Buffer, length, and timestampSec!'
+        )
+
+        assert.isTrue(
+            Buffer.isBuffer(this.receivedAdvertisementData),
+            'onData was not invoked with a real Buffer instance!'
+        )
+    }
+
+    @test()
+    protected static async startBleAdvertisementBackendRetainsOnDataCallbackToPreventGc() {
+        this.startBleAdvertisementBackend()
+
+        const registeredOnData = this.callsToStartBleAdvertisement[0][1]
+        const retainedCallbacks = this.instance.getRegisteredCallbacks()
+
+        assert.isTrue(
+            retainedCallbacks.includes(registeredOnData),
+            'startBleAdvertisementBackend did not retain the registered onData callback! Without a reference kept alive, koffi will garbage collect the callback and the native backend will stop invoking it after the first advertisement.'
+        )
+    }
+
+    @test()
+    protected static async startBleAdvertisementBackendReturnsJson() {
+        const json = this.startBleAdvertisementBackend()
+
+        assert.isEqualDeep(
+            json,
+            this.successfulResult,
+            'startBleAdvertisementBackend did not return a JSON string!'
+        )
+    }
+
+    @test()
     protected static async createUsbBackendCallsBindingWithExpectedArgs() {
         this.createUsbBackend()
 
@@ -658,12 +758,6 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
     }
 
-    private static createBleAdvertisementBackend() {
-        return this.instance.createBleAdvertisementBackend({
-            deviceUuid: this.bleDeviceUuid,
-        })
-    }
-
     private static createBleGattBackend() {
         return this.instance.createBleGattBackend({
             deviceUuid: this.bleDeviceUuid,
@@ -695,9 +789,11 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
     }
 
-    private static stopBleGattBackend() {
-        return this.instance.stopBleGattBackend({
+    private static startBleGattRssiPolling(onRssi?: (rssi: number) => void) {
+        return this.instance.startBleGattRssiPolling({
             deviceUuid: this.bleDeviceUuid,
+            intervalMs: this.bleGattRssiIntervalMs,
+            onRssi: onRssi ?? (() => {}),
         })
     }
 
@@ -707,11 +803,22 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
     }
 
-    private static startBleGattRssiPolling(onRssi?: (rssi: number) => void) {
-        return this.instance.startBleGattRssiPolling({
+    private static stopBleGattBackend() {
+        return this.instance.stopBleGattBackend({
             deviceUuid: this.bleDeviceUuid,
-            intervalMs: this.bleGattRssiIntervalMs,
-            onRssi: onRssi ?? (() => {}),
+        })
+    }
+
+    private static createBleAdvertisementBackend() {
+        return this.instance.createBleAdvertisementBackend({
+            deviceUuid: this.bleDeviceUuid,
+        })
+    }
+
+    private static startBleAdvertisementBackend() {
+        return this.instance.startBleAdvertisementBackend({
+            deviceUuid: this.bleDeviceUuid,
+            onData: this.bleAdvertisementOnDataCallback,
         })
     }
 
@@ -794,6 +901,10 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 this.callsToCreateBleAdvertisement.push(args)
                 return JSON.stringify(this.successfulResult)
             },
+            start_ble_advertisement_backend: (args: any) => {
+                this.callsToStartBleAdvertisement.push(args)
+                return JSON.stringify(this.successfulResult)
+            },
             create_usb_backend: (args) => {
                 this.callsToCreateUsb.push(args)
                 return JSON.stringify(this.successfulResult)
@@ -822,6 +933,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         this.callsToStartBleGattRssiPolling.length = 0
         this.callsToStopBleGattRssiPolling.length = 0
         this.callsToCreateBleAdvertisement.length = 0
+        this.callsToStartBleAdvertisement.length = 0
         this.callsToCreateUsb.length = 0
         this.callsToStartUsb.length = 0
         this.callsToWriteUsb.length = 0
