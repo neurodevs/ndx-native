@@ -21,7 +21,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static koffiStructCalls?: { name: string; fields: object }[]
     private static koffiDecodeCalls?: unknown[][]
     private static koffiCalls?: KoffiCall[]
-    private static fakeDecodedUsbData?: Buffer
+    private static fakeDecodedData?: number[]
 
     private static readonly bleDeviceUuid = this.generateId()
     private static readonly bleCharacteristicUuid = this.generateId()
@@ -564,7 +564,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 receivedTimestamp: this.receivedAdvertisementTimestampSec,
             },
             {
-                receivedData: this.fakeDecodedUsbData,
+                receivedData: Buffer.from(this.fakeDecodedData!),
                 receivedLength: 3,
                 receivedTimestamp: 123.456,
             },
@@ -670,7 +670,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 receivedTimestamp: this.receivedTimestampSec,
             },
             {
-                receivedData: this.fakeDecodedUsbData,
+                receivedData: Buffer.from(this.fakeDecodedData!),
                 receivedLength: 3,
                 receivedTimestamp: 123.456,
             },
@@ -957,11 +957,11 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     private static fakeKoffiDecode() {
-        this.fakeDecodedUsbData = Buffer.from([1, 2, 3])
+        this.fakeDecodedData = [1, 2, 3]
 
         LibndxAdapter.koffiDecode = ((...args: unknown[]) => {
             this.koffiDecodeCalls!.push(args)
-            return this.fakeDecodedUsbData
+            return this.fakeDecodedData
         }) as any
     }
 
