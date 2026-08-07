@@ -1,17 +1,17 @@
 import {
     RegisterBleGattCharCallbacksOptions,
-    BleGattBackendOptions,
+    BleGattOptions,
     WriteBleGattCharOptions,
-    UsbBackendOptions,
-    WriteUsbBackendOptions,
+    UsbOptions,
+    WriteUsbOptions,
     Libndx,
     LibndxAdapterOptions,
-    StartBleGattBackendOptions,
+    StartBleGattOptions,
     NativeResult,
     BleGattRssiOptions,
     DiscoverBleUuidOptions,
-    StartUsbBackendOptions,
-    StartBleAdvertisementBackendOptions,
+    StartUsbOptions,
+    StartBleAdvertisementOptions,
 } from '../../impl/LibndxAdapter.js'
 
 export default class FakeLibndx implements Libndx {
@@ -19,24 +19,24 @@ export default class FakeLibndx implements Libndx {
 
     public static callsToDiscoverBleUuid: DiscoverBleUuidOptions[] = []
 
-    public static callsToCreateBleGattBackend: BleGattBackendOptions[] = []
-    public static callsToStartBleGattBackend: StartBleGattBackendOptions[] = []
+    public static callsToCreateBleGattBackend: BleGattOptions[] = []
+    public static callsToStartBleGattBackend: StartBleGattOptions[] = []
     public static callsToRegisterBleGattCharCallbacks: RegisterBleGattCharCallbacksOptions[] =
         []
     public static callsToWriteBleGattChar: WriteBleGattCharOptions[] = []
-    public static callsToStopBleGattBackend: BleGattBackendOptions[] = []
+    public static callsToStopBleGattBackend: BleGattOptions[] = []
     public static callsToStartBleGattRssiPolling: BleGattRssiOptions[] = []
-    public static callsToStopBleGattRssiPolling: BleGattBackendOptions[] = []
+    public static callsToStopBleGattRssiPolling: BleGattOptions[] = []
 
-    public static callsToCreateBleAdvertisement: BleGattBackendOptions[] = []
-    public static callsToStartBleAdvertisement: StartBleAdvertisementBackendOptions[] =
+    public static callsToCreateBleAdvertisement: BleGattOptions[] = []
+    public static callsToStartBleAdvertisement: StartBleAdvertisementOptions[] =
         []
-    public static callsToStopBleAdvertisement: BleGattBackendOptions[] = []
+    public static callsToStopBleAdvertisement: BleGattOptions[] = []
 
-    public static callsToCreateUsbBackend: UsbBackendOptions[] = []
-    public static callsToStartUsbBackend: StartUsbBackendOptions[] = []
-    public static callsToWriteUsbBackend: WriteUsbBackendOptions[] = []
-    public static callsToStopUsbBackend: UsbBackendOptions[] = []
+    public static callsToCreateUsbBackend: UsbOptions[] = []
+    public static callsToStartUsbBackend: StartUsbOptions[] = []
+    public static callsToWriteUsbBackend: WriteUsbOptions[] = []
+    public static callsToStopUsbBackend: UsbOptions[] = []
 
     public static fakeResult: NativeResult = { status: 200 }
 
@@ -49,12 +49,12 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
-    public createBleGattBackend(options: BleGattBackendOptions) {
+    public createBleGattBackend(options: BleGattOptions) {
         FakeLibndx.callsToCreateBleGattBackend.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public startBleGattBackend(options: StartBleGattBackendOptions) {
+    public startBleGattBackend(options: StartBleGattOptions) {
         FakeLibndx.callsToStartBleGattBackend.push(options)
         return FakeLibndx.fakeResult
     }
@@ -76,49 +76,47 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
-    public stopBleGattRssiPolling(options: BleGattBackendOptions) {
+    public stopBleGattRssiPolling(options: BleGattOptions) {
         FakeLibndx.callsToStopBleGattRssiPolling.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public stopBleGattBackend(options: BleGattBackendOptions) {
+    public stopBleGattBackend(options: BleGattOptions) {
         FakeLibndx.callsToStopBleGattBackend.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public createBleAdvertisementBackend(options: BleGattBackendOptions) {
+    public createBleAdvertisementBackend(options: BleGattOptions) {
         FakeLibndx.callsToCreateBleAdvertisement.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public startBleAdvertisementBackend(
-        options: StartBleAdvertisementBackendOptions
-    ) {
+    public startBleAdvertisementBackend(options: StartBleAdvertisementOptions) {
         FakeLibndx.callsToStartBleAdvertisement.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public stopBleAdvertisementBackend(options: BleGattBackendOptions) {
+    public stopBleAdvertisementBackend(options: BleGattOptions) {
         FakeLibndx.callsToStopBleAdvertisement.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public createUsbBackend(options: UsbBackendOptions) {
+    public createUsbBackend(options: UsbOptions) {
         FakeLibndx.callsToCreateUsbBackend.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public startUsbBackend(options: StartUsbBackendOptions) {
+    public startUsbBackend(options: StartUsbOptions) {
         FakeLibndx.callsToStartUsbBackend.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public writeUsbBackend(options: WriteUsbBackendOptions) {
+    public writeUsbBackend(options: WriteUsbOptions) {
         FakeLibndx.callsToWriteUsbBackend.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public stopUsbBackend(options: UsbBackendOptions) {
+    public stopUsbBackend(options: UsbOptions) {
         FakeLibndx.callsToStopUsbBackend.push(options)
         return FakeLibndx.fakeResult
     }
