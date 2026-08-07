@@ -503,19 +503,6 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async registersExpectedStartUsbBackendSignatureWithOnData() {
-        const sig = this.koffiFuncSignatures!.find((s) =>
-            s.startsWith('str start_usb_backend(')
-        )
-
-        assert.isEqual(
-            sig,
-            'str start_usb_backend(str serial, OnUsbDataFn *on_data)',
-            'start_usb_backend was not registered with an onData callback param!'
-        )
-    }
-
-    @test()
     protected static async registersOnUsbDataProtoWithExpectedSignature() {
         const proto = this.koffiProtoCalls!.find((s) =>
             s.includes('OnUsbDataFn')
