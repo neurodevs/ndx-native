@@ -144,6 +144,9 @@ export default class LibndxAdapter implements Libndx {
             stop_ble_gatt_backend: wrap1(
                 lib.func('str stop_ble_gatt_backend(str uuid)')
             ),
+            create_ble_advertisement_backend: wrap1(
+                lib.func('str create_ble_advertisement_backend(str config)')
+            ),
             create_usb_backend: wrap1(
                 lib.func('str create_usb_backend(str config)')
             ),
@@ -310,6 +313,15 @@ export default class LibndxAdapter implements Libndx {
         return JSON.parse(this.bindings.stop_ble_gatt_backend([deviceUuid]))
     }
 
+    public createBleAdvertisementBackend(options: BleGattBackendOptions) {
+        const { deviceUuid } = options
+        const configJson = JSON.stringify({ uuid: deviceUuid })
+
+        return JSON.parse(
+            this.bindings.create_ble_advertisement_backend([configJson])
+        )
+    }
+
     public createUsbBackend(options: UsbBackendOptions) {
         const { serialNumber } = options
         const configJson = JSON.stringify({ serial_number: serialNumber })
@@ -415,6 +427,7 @@ export default class LibndxAdapter implements Libndx {
 
 export interface Libndx {
     discoverBleUuid(options: DiscoverBleUuidOptions): NativeResult
+
     createBleGattBackend(options: BleGattBackendOptions): NativeResult
     startBleGattBackend(options: StartBleGattBackendOptions): NativeResult
     registerBleGattCharCallbacks(
@@ -424,6 +437,9 @@ export interface Libndx {
     startBleGattRssiPolling(options: BleGattRssiOptions): NativeResult
     stopBleGattRssiPolling(options: BleGattBackendOptions): NativeResult
     stopBleGattBackend(options: BleGattBackendOptions): NativeResult
+
+    createBleAdvertisementBackend(options: BleGattBackendOptions): NativeResult
+
     createUsbBackend(options: UsbBackendOptions): NativeResult
     startUsbBackend(options: StartUsbBackendOptions): NativeResult
     writeUsbBackend(options: WriteUsbBackendOptions): NativeResult
@@ -485,6 +501,7 @@ export interface WriteUsbBackendOptions extends UsbBackendOptions {
 
 export interface LibndxBindings {
     discover_ble_uuid(args: [string, unknown]): string
+
     create_ble_gatt_backend(args: [string]): string
     start_ble_gatt_backend(args: [string, unknown, unknown, number]): string
     register_ble_gatt_char_callbacks(args: [string, unknown, number]): string
@@ -492,6 +509,9 @@ export interface LibndxBindings {
     start_ble_gatt_rssi_polling(args: [string, number, unknown]): string
     stop_ble_gatt_rssi_polling(args: [string]): string
     stop_ble_gatt_backend(args: [string]): string
+
+    create_ble_advertisement_backend(args: [string]): string
+
     create_usb_backend(args: [string]): string
     start_usb_backend(args: [string, unknown]): string
     write_usb_backend(args: [string, string]): string

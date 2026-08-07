@@ -15,7 +15,9 @@ import {
 
 export default class FakeLibndx implements Libndx {
     public static callsToConstructor: (LibndxAdapterOptions | undefined)[] = []
+
     public static callsToDiscoverBleUuid: DiscoverBleUuidOptions[] = []
+
     public static callsToCreateBleGattBackend: BleGattBackendOptions[] = []
     public static callsToStartBleGattBackend: StartBleGattBackendOptions[] = []
     public static callsToRegisterBleGattCharCallbacks: RegisterBleGattCharCallbacksOptions[] =
@@ -24,6 +26,9 @@ export default class FakeLibndx implements Libndx {
     public static callsToStopBleGattBackend: BleGattBackendOptions[] = []
     public static callsToStartBleGattRssiPolling: BleGattRssiOptions[] = []
     public static callsToStopBleGattRssiPolling: BleGattBackendOptions[] = []
+
+    public static callsToCreateBleAdvertisement: BleGattBackendOptions[] = []
+
     public static callsToCreateUsbBackend: UsbBackendOptions[] = []
     public static callsToStartUsbBackend: StartUsbBackendOptions[] = []
     public static callsToWriteUsbBackend: WriteUsbBackendOptions[] = []
@@ -74,6 +79,11 @@ export default class FakeLibndx implements Libndx {
 
     public stopBleGattBackend(options: BleGattBackendOptions) {
         FakeLibndx.callsToStopBleGattBackend.push(options)
+        return FakeLibndx.fakeResult
+    }
+
+    public createBleAdvertisementBackend(options: BleGattBackendOptions) {
+        FakeLibndx.callsToCreateBleAdvertisement.push(options)
         return FakeLibndx.fakeResult
     }
 
