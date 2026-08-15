@@ -15,6 +15,7 @@ export default class LibndxAdapter implements Libndx {
     private static onConnectedProto?: ReturnType<typeof koffi.proto>
     private static onRssiProto?: ReturnType<typeof koffi.proto>
     private static onDataProto?: ReturnType<typeof koffi.proto>
+    private static onAdvertisementProto?: ReturnType<typeof koffi.proto>
 
     private static instance?: Libndx
 
@@ -53,6 +54,7 @@ export default class LibndxAdapter implements Libndx {
         delete this.onConnectedProto
         delete this.onRssiProto
         delete this.onDataProto
+        delete this.onAdvertisementProto
     }
 
     private tryToLoadBindings() {
@@ -69,6 +71,7 @@ export default class LibndxAdapter implements Libndx {
         LibndxAdapter.getOnConnectedProto()
         LibndxAdapter.getOnRssiProto()
         LibndxAdapter.getOnDataProto()
+        LibndxAdapter.getOnAdvertisementProto()
 
         const lib = LibndxAdapter.koffiLoad(this.libndxPath)
 
@@ -164,7 +167,7 @@ export default class LibndxAdapter implements Libndx {
             ),
             start_ble_observer_backend: wrapStrAndCallback(
                 lib.func(
-                    'str start_ble_observer_backend(str uuid, OnDataFn *on_data)'
+                    'str start_ble_observer_backend(str uuid, OnAdvertisementFn *on_advertisement)'
                 )
             ),
             stop_ble_observer_backend: wrap1(
@@ -348,17 +351,17 @@ export default class LibndxAdapter implements Libndx {
     public startBleObserverBackend(options: StartBleObserverOptions) {
         const { deviceUuid, onAdvertisement } = options
 
-        const registeredOnData = LibndxAdapter.registerOnData(
+        const registeredOnAdvertisement = LibndxAdapter.registerOnAdvertisement(
             onAdvertisement,
-            LibndxAdapter.getOnDataProto()!
+            LibndxAdapter.getOnAdvertisementProto()!
         )
 
-        this.registeredCallbacks.push(registeredOnData)
+        this.registeredCallbacks.push(registeredOnAdvertisement)
 
         return JSON.parse(
             this.bindings.start_ble_observer_backend([
                 deviceUuid,
-                registeredOnData,
+                registeredOnAdvertisement,
             ])
         )
     }
@@ -402,6 +405,15 @@ export default class LibndxAdapter implements Libndx {
     public stopUsbBackend(options: UsbOptions) {
         const { serialNumber } = options
         return JSON.parse(this.bindings.stop_usb_backend([serialNumber]))
+    }
+
+    private static registerOnAdvertisement(
+        onAdvertisement: OnAdvertisementCallback,
+        proto: ReturnType<typeof koffi.proto>
+    ) {
+        return this.koffiRegister((advertisementJson: string) => {
+            onAdvertisement(JSON.parse(advertisementJson))
+        }, this.koffiPointer(proto))
     }
 
     private static registerOnData(
@@ -460,6 +472,15 @@ export default class LibndxAdapter implements Libndx {
             )
         }
         return this.onDiscoveredProto
+    }
+
+    private static getOnAdvertisementProto() {
+        if (!this.onAdvertisementProto) {
+            this.onAdvertisementProto = LibndxAdapter.koffiProto(
+                'void OnAdvertisementFn(str advertisement_json)'
+            )
+        }
+        return this.onAdvertisementProto
     }
 
     private static getCharCallbackStruct() {
@@ -557,11 +578,23 @@ export type OnDataCallback = (
 ) => void
 
 export interface StartBleObserverOptions extends BleOptions {
-    onAdvertisement: (
-        data: Buffer,
-        length: number,
-        timestampSec: number
-    ) => void
+    onAdvertisement: OnAdvertisementCallback
+}
+
+export type OnAdvertisementCallback = (
+    advertisement: NativeAdvertisement
+) => void
+
+export interface NativeAdvertisement {
+    localName: string
+    companyId: number | null
+    manufacturerData: string
+    serviceUuids: string[]
+    serviceData: Record<string, string>
+    rssi: number | null
+    txPowerLevel: number | null
+    isConnectable: boolean
+    timestampSec: number
 }
 
 export interface UsbOptions {

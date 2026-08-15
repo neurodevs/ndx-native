@@ -6,7 +6,10 @@ import LibndxAdapter, {
     NativeCharCallback,
     RegisteredCallbackPointer,
 } from '../../impl/LibndxAdapter.js'
-import type { NativePeripheral } from '../../impl/LibndxAdapter.js'
+import type {
+    NativeAdvertisement,
+    NativePeripheral,
+} from '../../impl/LibndxAdapter.js'
 import AbstractPackageTest from '../AbstractPackageTest.js'
 import FakeLibndx from '../../testDoubles/Libndx/FakeLibndx.js'
 import SpyLibndx from '../../testDoubles/Libndx/SpyLibndx.js'
@@ -45,18 +48,24 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         },
     ]
 
-    private static receivedObserverData: Buffer
-    private static receivedObserverLength: number
-    private static receivedObserverTimestampSec: number
+    private static receivedAdvertisement: NativeAdvertisement
 
     private static readonly onAdvertisement = (
-        data: Buffer,
-        length: number,
-        timestampSec: number
+        advertisement: NativeAdvertisement
     ) => {
-        this.receivedObserverData = data
-        this.receivedObserverLength = length
-        this.receivedObserverTimestampSec = timestampSec
+        this.receivedAdvertisement = advertisement
+    }
+
+    private static readonly fakeAdvertisement: NativeAdvertisement = {
+        localName: 'TestSensor_0A1B',
+        companyId: 0xffff,
+        manufacturerData: 'ffff001122334455',
+        serviceUuids: ['0000180a-0000-1000-8000-00805f9b34fb'],
+        serviceData: { '0000180a-0000-1000-8000-00805f9b34fb': '0100' },
+        rssi: -55,
+        txPowerLevel: 4,
+        isConnectable: true,
+        timestampSec: 123.456,
     }
 
     private static receivedUsbData: Buffer
@@ -173,7 +182,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 'str stop_ble_gatt_rssi_polling(str uuid)',
                 'str stop_ble_gatt_backend(str uuid)',
                 'str create_ble_observer_backend(str config)',
-                'str start_ble_observer_backend(str uuid, OnDataFn *on_data)',
+                'str start_ble_observer_backend(str uuid, OnAdvertisementFn *on_advertisement)',
                 'str stop_ble_observer_backend(str uuid)',
                 'str create_usb_backend(str config)',
                 'str start_usb_backend(str serial, OnDataFn *on_data)',
@@ -194,6 +203,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 'void OnConnectedFn(str uuid, str name)',
                 'void OnRssiFn(int rssi)',
                 'void OnDataFn(uint8 *data, uint64 length, double timestamp_sec)',
+                'void OnAdvertisementFn(str advertisement_json)',
             ],
             'Did not register expected koffi proto signatures! Note that OnDataFn must declare length as uint64 to match the native size_t parameter!'
         )
@@ -575,61 +585,69 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async startBleObserverBackendPassesOnDataCallbackToBinding() {
+    protected static async startBleObserverBackendPassesOnAdvertisementCallbackToBinding() {
         this.startBleObserverBackend()
 
         assert.isFunction(
             this.callsToStartBleObserver[0][1],
-            'startBleObserverBackend did not pass an onData callback to the binding!'
+            'startBleObserverBackend did not pass an onAdvertisement callback to the binding!'
         )
     }
 
     @test()
-    protected static async startBleObserverBackendDecodesRawPointerBeforeInvokingOnData() {
+    protected static async startBleObserverBackendParsesJsonBeforeInvokingOnAdvertisement() {
         this.startBleObserverBackend()
 
-        const registeredOnData = this
-            .callsToStartBleObserver[0][1] as unknown as OnDataCallback
+        const registeredOnAdvertisement = this
+            .callsToStartBleObserver[0][1] as unknown as (json: string) => void
 
-        const fakePointer = 49611948672n
-        registeredOnData(fakePointer, 3, 123.456)
-
-        assert.isEqualDeep(
-            this.koffiDecodeCalls![0],
-            [fakePointer, 'uint8_t', 3],
-            'onData did not decode the raw pointer via koffi.decode!'
-        )
+        registeredOnAdvertisement(JSON.stringify(this.fakeAdvertisement))
 
         assert.isEqualDeep(
-            {
-                receivedData: this.receivedObserverData,
-                receivedLength: this.receivedObserverLength,
-                receivedTimestamp: this.receivedObserverTimestampSec,
-            },
-            {
-                receivedData: Buffer.from(this.fakeDecodedData!),
-                receivedLength: 3,
-                receivedTimestamp: 123.456,
-            },
-            'onData was not invoked with the decoded Buffer, length, and timestampSec!'
-        )
-
-        assert.isTrue(
-            Buffer.isBuffer(this.receivedObserverData),
-            'onData was not invoked with a real Buffer instance!'
+            this.receivedAdvertisement,
+            this.fakeAdvertisement,
+            'onAdvertisement was not invoked with the parsed advertisement!'
         )
     }
 
     @test()
-    protected static async startBleObserverBackendRetainsOnDataCallbackToPreventGc() {
+    protected static async startBleObserverBackendPassesThroughNullOptionalFields() {
         this.startBleObserverBackend()
 
-        const registeredOnData = this.callsToStartBleObserver[0][1]
+        const registeredOnAdvertisement = this
+            .callsToStartBleObserver[0][1] as unknown as (json: string) => void
+
+        const sparse: NativeAdvertisement = {
+            ...this.fakeAdvertisement,
+            localName: '',
+            companyId: null,
+            manufacturerData: '',
+            serviceUuids: [],
+            serviceData: {},
+            rssi: null,
+            txPowerLevel: null,
+            isConnectable: false,
+        }
+
+        registeredOnAdvertisement(JSON.stringify(sparse))
+
+        assert.isEqualDeep(
+            this.receivedAdvertisement,
+            sparse,
+            'onAdvertisement did not pass through null optional fields!'
+        )
+    }
+
+    @test()
+    protected static async startBleObserverBackendRetainsOnAdvertisementCallbackToPreventGc() {
+        this.startBleObserverBackend()
+
+        const registeredOnAdvertisement = this.callsToStartBleObserver[0][1]
         const retainedCallbacks = this.instance.getRegisteredCallbacks()
 
         assert.isTrue(
-            retainedCallbacks.includes(registeredOnData),
-            'startBleObserverBackend did not retain the registered onData callback!'
+            retainedCallbacks.includes(registeredOnAdvertisement),
+            'startBleObserverBackend did not retain the registered onAdvertisement callback!'
         )
     }
 
