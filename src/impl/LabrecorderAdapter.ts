@@ -94,9 +94,7 @@ export type LabrecorderConstructor = new (
 ) => Labrecorder
 
 export interface LabrecorderBindings {
-    recording_create(
-        args: [string, readonly string[], number]
-    ): RecordingHandle
+    recording_create(args: [string, readonly string[], number]): RecordingHandle
 
     recording_stop(args: [RecordingHandle]): void
     recording_delete(args: [RecordingHandle]): void
