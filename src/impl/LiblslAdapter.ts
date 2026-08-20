@@ -490,7 +490,7 @@ export interface CreateStreamInfoOptions {
 
 export interface AppendChannelsToStreamInfoOptions {
     infoHandle: InfoHandle
-    channels: LslChannel[]
+    channels: readonly LslChannel[]
 }
 
 export interface GetChannelCountOptions {
@@ -516,13 +516,13 @@ export interface CreateOutletOptions {
 
 export interface PushSampleFloatTimestampOptions {
     outletHandle: OutletHandle
-    sample: number[]
+    sample: readonly number[]
     timestampSec: number
 }
 
 export interface PushSampleStringTimestampOptions {
     outletHandle: OutletHandle
-    sample: string[]
+    sample: readonly string[]
     timestampSec: number
 }
 
@@ -597,7 +597,7 @@ export interface LslChannel {
     type: string
 }
 
-export type LslSample = (number | string | undefined)[]
+export type LslSample = readonly (number | string | undefined)[]
 
 export interface InfoHandle {}
 export interface OutletHandle {}

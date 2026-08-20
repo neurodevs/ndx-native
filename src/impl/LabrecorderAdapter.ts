@@ -55,7 +55,7 @@ export default class LabrecorderAdapter implements Labrecorder {
         }
     }
 
-    public createRecording(filename: string, watchFor: string[]) {
+    public createRecording(filename: string, watchFor: readonly string[]) {
         return this.bindings.recording_create([
             filename,
             watchFor,
@@ -81,7 +81,10 @@ export default class LabrecorderAdapter implements Labrecorder {
 }
 
 export interface Labrecorder {
-    createRecording(filename: string, watchFor: string[]): RecordingHandle
+    createRecording(
+        filename: string,
+        watchFor: readonly string[]
+    ): RecordingHandle
     stopRecording(recording: RecordingHandle): void
     deleteRecording(recording: RecordingHandle): void
 }
@@ -91,7 +94,9 @@ export type LabrecorderConstructor = new (
 ) => Labrecorder
 
 export interface LabrecorderBindings {
-    recording_create(args: [string, string[], number]): RecordingHandle
+    recording_create(
+        args: [string, readonly string[], number]
+    ): RecordingHandle
 
     recording_stop(args: [RecordingHandle]): void
     recording_delete(args: [RecordingHandle]): void

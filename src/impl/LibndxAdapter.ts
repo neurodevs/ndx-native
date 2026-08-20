@@ -547,11 +547,11 @@ export interface BleOptions {
 
 export interface StartBleGattOptions extends BleOptions {
     onConnected: (peripheral: NativePeripheral) => void
-    charCallbacks: CharacteristicCallback[]
+    charCallbacks: readonly CharacteristicCallback[]
 }
 
 export interface RegisterBleGattCharCallbacksOptions extends BleOptions {
-    charCallbacks: CharacteristicCallback[]
+    charCallbacks: readonly CharacteristicCallback[]
 }
 
 export interface BleGattRssiOptions extends BleOptions {
