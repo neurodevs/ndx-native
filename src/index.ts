@@ -1,3 +1,6 @@
+export * from './types.js'
+export * from './consts.js'
+
 // Labrecorder
 
 export { default as LabrecorderAdapter } from './impl/LabrecorderAdapter.js'
@@ -37,7 +40,3 @@ export * from './testDoubles/Libxdf/SpyLibxdf.js'
 
 export { default as handleLslError } from './lib/handleLslError.js'
 export * from './lib/handleLslError.js'
-
-// consts
-
-export * from './consts.js'
