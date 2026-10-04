@@ -1,28 +1,44 @@
 import {
+    arrayConstructor,
     createPointer,
     DataType,
     define,
-    JsExternal,
+    freePointer,
     load,
     open,
+    PointerType,
     unwrapPointer,
 } from 'ffi-rs'
 
 import { CHANNEL_FORMATS } from '../consts.js'
-import { LslErrorCode } from '../lib/handleLslError.js'
+import handleLslError, { LslErrorCode } from '../lib/handleLslError.js'
 
 export default class LiblslAdapter implements Liblsl {
     public static open = open
     public static define = define
     public static load = load
     public static alloc = Buffer.alloc
+    public static freePointer = freePointer
 
     private static instance?: Liblsl
+
+    private static readonly bytesPerFloat = 4
+    private static readonly bytesPerDouble = 8
+    private static readonly bytesPerI32 = 4
 
     public liblslPath: string
     private bindings!: LiblslBindings
 
+    private readonly buffersByInlet = new Map<
+        InletHandle,
+        ReturnType<typeof LiblslAdapter.allocateInletBuffers>
+    >()
+
     private readonly defaultMacOsPath = `/opt/homebrew/Cellar/lsl/1.16.2/lib/liblsl.1.16.2.dylib`
+    private readonly unknownInletMessage = `\n\n Unknown inlet handle! \n\n Please pass one returned by createInlet that has not been destroyed. \n`
+
+    private readonly maxChunkSize = 0
+    private readonly shouldRecover = 1
 
     protected constructor() {
         this.liblslPath = process.env.LIBLSL_PATH ?? this.defaultMacOsPath
@@ -309,18 +325,25 @@ export default class LiblslAdapter implements Liblsl {
     }
 
     public createInlet(options: CreateInletOptions) {
-        const { infoHandle, maxBufferedMs } = options
+        const { infoHandle, maxBufferedMs, chunkSize } = options
 
-        return this.bindings.lsl_create_inlet([
+        const inletHandle = this.bindings.lsl_create_inlet([
             infoHandle,
             maxBufferedMs / 1000,
             this.maxChunkSize,
             this.shouldRecover,
         ])
-    }
 
-    private readonly maxChunkSize = 0
-    private readonly shouldRecover = 1
+        this.buffersByInlet.set(
+            inletHandle,
+            LiblslAdapter.allocateInletBuffers(
+                this.getChannelCount({ infoHandle }),
+                chunkSize
+            )
+        )
+
+        return inletHandle
+    }
 
     public getChannelCount(options: GetChannelCountOptions) {
         const { infoHandle } = options
@@ -328,15 +351,36 @@ export default class LiblslAdapter implements Liblsl {
     }
 
     public openStream(options: OpenStreamOptions) {
-        const { inletHandle, timeoutMs, errorCodePtr } = options
+        const { inletHandle, timeoutMs } = options
+        const { openStreamErrorCode } = this.buffersFor(inletHandle)
 
         this.load({
             library: 'lsl',
             funcName: 'lsl_open_stream',
             retType: DataType.Void,
             paramsType: [DataType.External, DataType.Double, DataType.External],
-            paramsValue: [inletHandle, timeoutMs / 1000, errorCodePtr],
+            paramsValue: [
+                inletHandle,
+                timeoutMs / 1000,
+                openStreamErrorCode.ptr,
+            ],
         })
+
+        this.throwIfLslError(openStreamErrorCode.buffer)
+    }
+
+    private buffersFor(inletHandle: InletHandle) {
+        const buffers = this.buffersByInlet.get(inletHandle)
+
+        if (!buffers) {
+            throw new Error(this.unknownInletMessage)
+        }
+
+        return buffers
+    }
+
+    private throwIfLslError(errorCode: Buffer) {
+        handleLslError(errorCode.readInt32LE())
     }
 
     public closeStream(options: CloseStreamOptions) {
@@ -352,15 +396,12 @@ export default class LiblslAdapter implements Liblsl {
     }
 
     public pullSample(options: PullSampleOptions) {
-        const {
-            inletHandle,
-            sampleBufferPtr,
-            sampleBufferElements,
-            timeoutMs,
-            errorCodePtr: errorCodePtr,
-        } = options
+        const { inletHandle, timeoutMs } = options
 
-        return this.load({
+        const { channelCount, samples, pullErrorCode } =
+            this.buffersFor(inletHandle)
+
+        const timestampSec = this.load({
             library: 'lsl',
             funcName: 'lsl_pull_sample_f',
             retType: DataType.Double,
@@ -373,48 +414,78 @@ export default class LiblslAdapter implements Liblsl {
             ],
             paramsValue: [
                 inletHandle,
-                sampleBufferPtr,
-                sampleBufferElements,
+                samples.ptr,
+                channelCount,
                 timeoutMs / 1000,
-                errorCodePtr,
+                pullErrorCode.ptr,
             ],
         })
+
+        this.throwIfLslError(pullErrorCode.buffer)
+
+        return timestampSec > 0
+            ? {
+                  samples: this.readFloats(samples.buffer, channelCount),
+                  timestamps: [timestampSec],
+              }
+            : undefined
+    }
+
+    private readFloats(buffer: Buffer, numValues: number) {
+        return Array.from(
+            new Float32Array(buffer.buffer, buffer.byteOffset, numValues)
+        )
     }
 
     public pullChunk(options: PullChunkOptions) {
-        const {
-            inletHandle,
-            sampleBufferPtr,
-            timestampBufferPtr,
-            sampleBufferElements,
-            timestampBufferElements,
-            timeoutMs,
-            errorCodePtr: errorCodePtr,
-        } = options
+        const { inletHandle, timeoutMs } = options
 
-        return this.load({
-            library: 'lsl',
-            funcName: 'lsl_pull_chunk_f',
-            retType: DataType.Double,
-            paramsType: [
-                DataType.External,
-                DataType.External,
-                DataType.External,
-                DataType.I32,
-                DataType.I32,
-                DataType.Double,
-                DataType.External,
-            ],
-            paramsValue: [
-                inletHandle,
-                sampleBufferPtr,
-                timestampBufferPtr,
-                sampleBufferElements,
-                timestampBufferElements,
-                timeoutMs / 1000,
-                errorCodePtr,
-            ],
-        })
+        const { channelCount, chunkSize, samples, timestamps, pullErrorCode } =
+            this.buffersFor(inletHandle)
+
+        const numValues = Number(
+            this.load({
+                library: 'lsl',
+                funcName: 'lsl_pull_chunk_f',
+                retType: DataType.U64,
+                paramsType: [
+                    DataType.External,
+                    DataType.External,
+                    DataType.External,
+                    DataType.U64,
+                    DataType.U64,
+                    DataType.Double,
+                    DataType.External,
+                ],
+                paramsValue: [
+                    inletHandle,
+                    samples.ptr,
+                    timestamps.ptr,
+                    chunkSize * channelCount,
+                    chunkSize,
+                    timeoutMs / 1000,
+                    pullErrorCode.ptr,
+                ],
+            })
+        )
+
+        this.throwIfLslError(pullErrorCode.buffer)
+
+        return numValues > 0
+            ? {
+                  samples: this.readFloats(samples.buffer, numValues),
+                  timestamps: this.readDoubles(
+                      timestamps.buffer,
+                      numValues / channelCount
+                  ),
+              }
+            : undefined
+    }
+
+    private readDoubles(buffer: Buffer, numValues: number) {
+        return Array.from(
+            new Float64Array(buffer.buffer, buffer.byteOffset, numValues)
+        )
     }
 
     public flushInlet(options: FlushInletOptions) {
@@ -424,7 +495,40 @@ export default class LiblslAdapter implements Liblsl {
 
     public destroyInlet(options: DestroyInletOptions) {
         const { inletHandle } = options
+
         this.bindings.lsl_destroy_inlet([inletHandle])
+        this.freeInletBuffers(inletHandle)
+    }
+
+    private freeInletBuffers(inletHandle: InletHandle) {
+        const buffers = this.buffersByInlet.get(inletHandle)
+
+        if (!buffers) {
+            return
+        }
+
+        const { samples, timestamps, pullErrorCode, openStreamErrorCode } =
+            buffers
+
+        const nativeBuffers = [
+            samples,
+            timestamps,
+            pullErrorCode,
+            openStreamErrorCode,
+        ]
+
+        this.freePointer({
+            paramsType: nativeBuffers.map(({ buffer }) =>
+                arrayConstructor({
+                    type: DataType.U8Array,
+                    length: buffer.length,
+                })
+            ),
+            paramsValue: nativeBuffers.map(({ ref }) => ref),
+            pointerType: PointerType.RsPointer,
+        })
+
+        this.buffersByInlet.delete(inletHandle)
     }
 
     private get open() {
@@ -441,6 +545,41 @@ export default class LiblslAdapter implements Liblsl {
 
     private get alloc() {
         return LiblslAdapter.alloc
+    }
+
+    private get freePointer() {
+        return LiblslAdapter.freePointer
+    }
+
+    private static allocateInletBuffers(
+        channelCount: number,
+        chunkSize: number
+    ) {
+        return {
+            channelCount,
+            chunkSize,
+            samples: this.allocateNativeBuffer(
+                channelCount * chunkSize * this.bytesPerFloat
+            ),
+            timestamps: this.allocateNativeBuffer(
+                chunkSize * this.bytesPerDouble
+            ),
+            pullErrorCode: this.allocateNativeBuffer(this.bytesPerI32),
+            openStreamErrorCode: this.allocateNativeBuffer(this.bytesPerI32),
+        }
+    }
+
+    private static allocateNativeBuffer(numBytes: number) {
+        const buffer = this.alloc(numBytes)
+
+        const [ref] = createPointer({
+            paramsType: [DataType.U8Array],
+            paramsValue: [buffer],
+        })
+
+        const [ptr] = unwrapPointer([ref])
+
+        return { buffer, ref, ptr }
     }
 }
 
@@ -471,8 +610,13 @@ export interface Liblsl {
     createInlet(options: CreateInletOptions): InletHandle
     openStream(options: OpenStreamOptions): void
     closeStream(options: CloseStreamOptions): void
-    pullSample(options: PullSampleOptions): number
-    pullChunk(options: PullChunkOptions): number
+    pullSample(
+        options: PullSampleOptions
+    ): { samples: number[]; timestamps: number[] } | undefined
+
+    pullChunk(
+        options: PullChunkOptions
+    ): { samples: number[]; timestamps: number[] } | undefined
     flushInlet(options: FlushInletOptions): void
     destroyInlet(options: DestroyInletOptions): void
 }
@@ -533,12 +677,12 @@ export interface DestroyOutletOptions {
 export interface CreateInletOptions {
     infoHandle: InfoHandle
     maxBufferedMs: number
+    chunkSize: number
 }
 
 export interface OpenStreamOptions {
     inletHandle: InletHandle
     timeoutMs: number
-    errorCodePtr: JsExternal
 }
 
 export interface CloseStreamOptions {
@@ -547,15 +691,12 @@ export interface CloseStreamOptions {
 
 export interface PullSampleOptions {
     inletHandle: InletHandle
-    sampleBufferPtr: JsExternal
-    sampleBufferElements: number
     timeoutMs: number
-    errorCodePtr: JsExternal
 }
 
-export interface PullChunkOptions extends PullSampleOptions {
-    timestampBufferPtr: JsExternal
-    timestampBufferElements: number
+export interface PullChunkOptions {
+    inletHandle: InletHandle
+    timeoutMs: number
 }
 
 export interface FlushInletOptions {

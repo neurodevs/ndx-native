@@ -1,11 +1,14 @@
 import { randomInt } from 'node:crypto'
 
 import {
+    arrayConstructor,
     createPointer,
     DataType,
     FieldType,
+    freePointer,
     FuncObj,
     OpenParams,
+    PointerType,
     unwrapPointer,
 } from 'ffi-rs'
 import { test, assert } from '@neurodevs/node-tdd'
@@ -63,6 +66,9 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
     private static ffiRsDefineOptions: FfiRsDefineOptions
     private static ffiRsLoadOptions?: Record<string, any>
 
+    private static allocatedBuffers: Buffer[]
+    private static callsToFreePointer: Record<string, any>[]
+
     protected static async beforeEach() {
         await super.beforeEach()
 
@@ -109,6 +115,18 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
         LiblslAdapter.load = (options) => {
             this.ffiRsLoadOptions = options
             return this.fakeNumResolveResults as any
+        }
+
+        this.allocatedBuffers = []
+        LiblslAdapter.alloc = ((numBytes: number) => {
+            const buffer = Buffer.alloc(numBytes)
+            this.allocatedBuffers.push(buffer)
+            return buffer
+        }) as typeof Buffer.alloc
+
+        this.callsToFreePointer = []
+        LiblslAdapter.freePointer = (params) => {
+            this.callsToFreePointer.push(params)
         }
 
         LiblslAdapter.resetInstance()
@@ -501,19 +519,14 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
     @test()
     protected static async createInletWithRequiredParams() {
         const { options, inletHandle } = this.createRandomInlet()
-        const { maxBufferedMs } = options
-
-        const expected = {
-            ...options,
-            maxBufferedMs: maxBufferedMs / 1000,
-        }
+        const { infoHandle, maxBufferedMs } = options
 
         const maxChunkSize = 0
         const shouldRecover = 1
 
         assert.isEqualDeep(
             this.createInletParams,
-            [...Object.values(expected), maxChunkSize, shouldRecover],
+            [infoHandle, maxBufferedMs / 1000, maxChunkSize, shouldRecover],
             'Did not call createInlet with expected params!'
         )
 
@@ -521,6 +534,22 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
             inletHandle,
             this.fakeInletHandle,
             'Did not receive expected inlet!'
+        )
+    }
+
+    @test()
+    protected static async createInletAllocatesBuffersForChannelsAndChunkSize() {
+        this.createRandomInlet()
+
+        assert.isEqualDeep(
+            this.inletBuffers.map((buffer) => buffer.length),
+            [
+                this.bytesPerFloat * this.channelCount * this.chunkSize,
+                this.bytesPerDouble * this.chunkSize,
+                this.bytesPerI32,
+                this.bytesPerI32,
+            ],
+            'Did not allocate buffers for channels and chunk size!'
         )
     }
 
@@ -538,21 +567,12 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
 
         const timeoutMs = randomInt(1000)
 
-        const errorCodePtr = unwrapPointer(
-            createPointer({
-                paramsType: [DataType.U8Array],
-                paramsValue: [new Int32Array(1)],
-            })
-        )[0]
+        this.instance.openStream({ inletHandle, timeoutMs })
 
-        await this.instance.openStream({
-            inletHandle,
-            timeoutMs,
-            errorCodePtr,
-        })
+        const { paramsValue, ...rest } = this.ffiRsLoadOptions!
 
         assert.isEqualDeep(
-            this.ffiRsLoadOptions,
+            { ...rest, paramsValue: paramsValue.slice(0, 2) },
             {
                 library: 'lsl',
                 funcName: 'lsl_open_stream',
@@ -562,9 +582,24 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
                     DataType.Double,
                     DataType.External,
                 ],
-                paramsValue: [inletHandle, timeoutMs / 1000, errorCodePtr],
+                paramsValue: [inletHandle, timeoutMs / 1000],
             },
             'Did not call openStream with expected options!'
+        )
+    }
+
+    @test()
+    protected static async openStreamThrowsOnLslError() {
+        const { inletHandle } = this.createRandomInlet()
+
+        LiblslAdapter.load = () => {
+            this.openStreamErrorCodeBuffer.writeInt32LE(-1)
+            return undefined as any
+        }
+
+        assert.doesThrow(
+            () => this.instance.openStream({ inletHandle, timeoutMs: 0 }),
+            'The liblsl operation failed due to a timeout!'
         )
     }
 
@@ -593,34 +628,19 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
     protected static async pullSampleCallsBinding() {
         const { inletHandle } = this.createRandomInlet()
 
-        const sampleBuffer = Buffer.alloc(4 * this.channelCount)
-        const sampleBufferElements = this.channelCount
-        const timeoutMs = 0.0
+        const timeoutMs = randomInt(1000)
 
-        const sampleBufferPtr = unwrapPointer(
-            createPointer({
-                paramsType: [DataType.U8Array],
-                paramsValue: [sampleBuffer],
-            })
-        )[0]
+        this.instance.pullSample({ inletHandle, timeoutMs })
 
-        const errorCodePtr = unwrapPointer(
-            createPointer({
-                paramsType: [DataType.U8Array],
-                paramsValue: [new Int32Array(1)],
-            })
-        )[0]
-
-        this.instance.pullSample({
-            inletHandle,
-            sampleBufferPtr,
-            sampleBufferElements,
-            timeoutMs,
-            errorCodePtr,
-        })
+        const { paramsValue, ...rest } = this.ffiRsLoadOptions!
 
         assert.isEqualDeep(
-            this.ffiRsLoadOptions,
+            {
+                ...rest,
+                inletHandle: paramsValue[0],
+                sampleBufferElements: paramsValue[2],
+                timeoutSec: paramsValue[3],
+            },
             {
                 library: 'lsl',
                 funcName: 'lsl_pull_sample_f',
@@ -632,15 +652,57 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
                     DataType.Double,
                     DataType.External,
                 ],
-                paramsValue: [
-                    inletHandle,
-                    sampleBufferPtr,
-                    sampleBufferElements,
-                    timeoutMs,
-                    errorCodePtr,
-                ],
+                inletHandle,
+                sampleBufferElements: this.channelCount,
+                timeoutSec: timeoutMs / 1000,
             },
             'Did not call pullSample with expected options!'
+        )
+    }
+
+    @test()
+    protected static async pullSampleReturnsSampleWithItsTimestamp() {
+        const { inletHandle } = this.createRandomInlet()
+
+        const sample = this.channelNames.map((_, i) => i + 1.5)
+        const timestampSec = 42.25
+
+        LiblslAdapter.load = () => {
+            this.writeSamples(sample)
+            return timestampSec as any
+        }
+
+        assert.isEqualDeep(
+            this.instance.pullSample({ inletHandle, timeoutMs: 0 }),
+            { samples: sample, timestamps: [timestampSec] },
+            'Did not return sample with its timestamp!'
+        )
+    }
+
+    @test()
+    protected static async pullSampleReturnsUndefinedWithoutData() {
+        const { inletHandle } = this.createRandomInlet()
+
+        LiblslAdapter.load = () => 0 as any
+
+        assert.isUndefined(
+            this.instance.pullSample({ inletHandle, timeoutMs: 0 }),
+            'Should not have returned a sample without data!'
+        )
+    }
+
+    @test()
+    protected static async pullSampleThrowsOnLslError() {
+        const { inletHandle } = this.createRandomInlet()
+
+        LiblslAdapter.load = () => {
+            this.pullErrorCodeBuffer.writeInt32LE(-2)
+            return 0 as any
+        }
+
+        assert.doesThrow(
+            () => this.instance.pullSample({ inletHandle, timeoutMs: 0 }),
+            'The liblsl stream has been lost!'
         )
     }
 
@@ -648,71 +710,118 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
     protected static async pullChunkCallsBinding() {
         const { inletHandle } = this.createRandomInlet()
 
-        const sampleBuffer = Buffer.alloc(
-            4 * this.chunkSize * this.channelCount
-        )
-        const timestampBuffer = Buffer.alloc(8 * this.chunkSize)
-        const sampleBufferElements = this.chunkSize * this.channelCount
-        const timestampBufferElements = this.chunkSize
-        const timeoutMs = 0.0
+        const timeoutMs = randomInt(1000)
 
-        const sampleBufferPtr = unwrapPointer(
-            createPointer({
-                paramsType: [DataType.U8Array],
-                paramsValue: [sampleBuffer],
-            })
-        )[0]
+        this.instance.pullChunk({ inletHandle, timeoutMs })
 
-        const timestampBufferPtr = unwrapPointer(
-            createPointer({
-                paramsType: [DataType.U8Array],
-                paramsValue: [timestampBuffer],
-            })
-        )[0]
-
-        const errorCodePtr = unwrapPointer(
-            createPointer({
-                paramsType: [DataType.U8Array],
-                paramsValue: [new Int32Array(1)],
-            })
-        )[0]
-
-        this.instance.pullChunk({
-            inletHandle,
-            sampleBufferPtr,
-            timestampBufferPtr,
-            sampleBufferElements,
-            timestampBufferElements,
-            timeoutMs,
-            errorCodePtr,
-        })
+        const { paramsValue, ...rest } = this.ffiRsLoadOptions!
 
         assert.isEqualDeep(
-            this.ffiRsLoadOptions,
+            {
+                ...rest,
+                inletHandle: paramsValue[0],
+                sampleBufferElements: paramsValue[3],
+                timestampBufferElements: paramsValue[4],
+                timeoutSec: paramsValue[5],
+            },
             {
                 library: 'lsl',
                 funcName: 'lsl_pull_chunk_f',
-                retType: DataType.Double,
+                retType: DataType.U64,
                 paramsType: [
                     DataType.External,
                     DataType.External,
                     DataType.External,
-                    DataType.I32,
-                    DataType.I32,
+                    DataType.U64,
+                    DataType.U64,
                     DataType.Double,
                     DataType.External,
                 ],
-                paramsValue: [
-                    inletHandle,
-                    sampleBufferPtr,
-                    timestampBufferPtr,
-                    sampleBufferElements,
-                    timestampBufferElements,
-                    timeoutMs,
-                    errorCodePtr,
-                ],
+                inletHandle,
+                sampleBufferElements: this.chunkSize * this.channelCount,
+                timestampBufferElements: this.chunkSize,
+                timeoutSec: timeoutMs / 1000,
             },
             'Did not call pullChunk with expected options!'
+        )
+    }
+
+    @test()
+    protected static async pullChunkReturnsFullChunkWithTimestamps() {
+        const { inletHandle } = this.createRandomInlet()
+
+        const { samples, timestamps } = this.writeFullChunkOnLoad()
+
+        assert.isEqualDeep(
+            this.instance.pullChunk({ inletHandle, timeoutMs: 0 }),
+            { samples, timestamps },
+            'Did not return full chunk with timestamps!'
+        )
+    }
+
+    @test()
+    protected static async pullChunkReturnsOnlyValuesWritten() {
+        const { inletHandle } = this.createRandomInlet()
+
+        const { samples, timestamps } = this.writeFullChunkOnLoad(
+            this.channelCount
+        )
+
+        assert.isEqualDeep(
+            this.instance.pullChunk({ inletHandle, timeoutMs: 0 }),
+            {
+                samples: samples.slice(0, this.channelCount),
+                timestamps: timestamps.slice(0, 1),
+            },
+            'Did not return only values written!'
+        )
+    }
+
+    @test()
+    protected static async pullChunkAcceptsCountOfValuesAsBigInt() {
+        const { inletHandle } = this.createRandomInlet()
+
+        const { samples } = this.writeFullChunkOnLoad(BigInt(this.channelCount))
+
+        assert.isEqualDeep(
+            this.instance.pullChunk({ inletHandle, timeoutMs: 0 })?.samples,
+            samples.slice(0, this.channelCount),
+            'Did not accept count of values as BigInt!'
+        )
+    }
+
+    @test()
+    protected static async pullChunkReturnsUndefinedWithoutData() {
+        const { inletHandle } = this.createRandomInlet()
+
+        LiblslAdapter.load = () => 0 as any
+
+        assert.isUndefined(
+            this.instance.pullChunk({ inletHandle, timeoutMs: 0 }),
+            'Should not have returned a chunk without data!'
+        )
+    }
+
+    @test()
+    protected static async pullChunkThrowsOnLslError() {
+        const { inletHandle } = this.createRandomInlet()
+
+        LiblslAdapter.load = () => {
+            this.pullErrorCodeBuffer.writeInt32LE(-4)
+            return 0 as any
+        }
+
+        assert.doesThrow(
+            () => this.instance.pullChunk({ inletHandle, timeoutMs: 0 }),
+            'An internal liblsl error has occurred!'
+        )
+    }
+
+    @test()
+    protected static async throwsWhenPullingFromUnknownInlet() {
+        assert.doesThrow(
+            () => this.instance.pullSample({ inletHandle: {}, timeoutMs: 0 }),
+            'Unknown inlet handle!'
         )
     }
 
@@ -737,6 +846,66 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
             this.destroyInletParams,
             [inletHandle],
             'Should have called destroyInlet with expected params!'
+        )
+    }
+
+    @test()
+    protected static async destroyInletFreesEachBufferPointerAsRustPointer() {
+        const { inletHandle } = this.createRandomInlet()
+        this.instance.destroyInlet({ inletHandle })
+
+        const [{ paramsType, paramsValue, pointerType }] =
+            this.callsToFreePointer
+
+        assert.isEqualDeep(
+            { paramsType, numPointers: paramsValue.length, pointerType },
+            {
+                paramsType: this.inletBuffers.map((buffer) =>
+                    arrayConstructor({
+                        type: DataType.U8Array,
+                        length: buffer.length,
+                    })
+                ),
+                numPointers: 4,
+                pointerType: PointerType.RsPointer,
+            },
+            'Did not free each buffer pointer as Rust pointer!'
+        )
+    }
+
+    @test()
+    protected static async destroyInletFreesPointersWithoutCrashing() {
+        LiblslAdapter.freePointer = freePointer
+
+        const { inletHandle } = this.createRandomInlet()
+        this.instance.destroyInlet({ inletHandle })
+
+        assert.isEqual(
+            this.destroyInletParams?.length,
+            1,
+            'Did not destroy inlet with real freePointer!'
+        )
+    }
+
+    @test()
+    protected static async destroyInletForgetsItsBuffers() {
+        const { inletHandle } = this.createRandomInlet()
+        this.instance.destroyInlet({ inletHandle })
+
+        assert.doesThrow(
+            () => this.instance.pullSample({ inletHandle, timeoutMs: 0 }),
+            'Unknown inlet handle!'
+        )
+    }
+
+    @test()
+    protected static async destroyingUnknownInletFreesNothing() {
+        this.instance.destroyInlet({ inletHandle: {} })
+
+        assert.isLength(
+            this.callsToFreePointer,
+            0,
+            'Should not have freed pointers for unknown inlet!'
         )
     }
 
@@ -786,7 +955,65 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
         return {
             infoHandle,
             maxBufferedMs: randomInt(10),
+            chunkSize: this.chunkSize,
         }
+    }
+
+    private static readonly bytesPerFloat = 4
+    private static readonly bytesPerDouble = 8
+    private static readonly bytesPerI32 = 4
+
+    private static get inletBuffers() {
+        return this.allocatedBuffers.slice(-4)
+    }
+
+    private static get sampleBuffer() {
+        return this.inletBuffers[0]
+    }
+
+    private static get timestampBuffer() {
+        return this.inletBuffers[1]
+    }
+
+    private static get pullErrorCodeBuffer() {
+        return this.inletBuffers[2]
+    }
+
+    private static get openStreamErrorCodeBuffer() {
+        return this.inletBuffers[3]
+    }
+
+    private static writeSamples(samples: number[]) {
+        samples.forEach((value, i) =>
+            this.sampleBuffer.writeFloatLE(value, i * this.bytesPerFloat)
+        )
+    }
+
+    private static writeTimestamps(timestamps: number[]) {
+        timestamps.forEach((value, i) =>
+            this.timestampBuffer.writeDoubleLE(value, i * this.bytesPerDouble)
+        )
+    }
+
+    private static writeFullChunkOnLoad(
+        numValuesReported: number | bigint = this.chunkSize * this.channelCount
+    ) {
+        const samples = Array.from(
+            { length: this.chunkSize * this.channelCount },
+            (_, i) => i + 0.5
+        )
+        const timestamps = Array.from(
+            { length: this.chunkSize },
+            (_, i) => 100.25 + i
+        )
+
+        LiblslAdapter.load = () => {
+            this.writeSamples(samples)
+            this.writeTimestamps(timestamps)
+            return numValuesReported as any
+        }
+
+        return { samples, timestamps }
     }
 
     private static generateRandomChannelValues() {

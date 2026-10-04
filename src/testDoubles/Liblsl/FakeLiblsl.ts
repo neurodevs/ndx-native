@@ -41,6 +41,7 @@ export default class FakeLiblsl implements Liblsl {
         new Float64Array([7, 8]),
     ]
 
+    public static fakeSampleTimestampSec = 1
     public static fakeChannelCount = 3
     public static fakeErrorCode = 0
 
@@ -151,10 +152,13 @@ export default class FakeLiblsl implements Liblsl {
         const sample = this.fakeSamples.shift()
 
         if (sample) {
-            return 1
+            return {
+                samples: Array.from(sample),
+                timestamps: [FakeLiblsl.fakeSampleTimestampSec],
+            }
         }
 
-        return 0
+        return undefined
     }
 
     public pullChunk(options: PullChunkOptions) {
@@ -164,10 +168,13 @@ export default class FakeLiblsl implements Liblsl {
         const timestamps = this.fakeTimestamps.shift()
 
         if (chunk && timestamps) {
-            return 1
+            return {
+                samples: Array.from(chunk),
+                timestamps: Array.from(timestamps),
+            }
         }
 
-        return 0
+        return undefined
     }
 
     public flushInlet(options: FlushInletOptions) {
