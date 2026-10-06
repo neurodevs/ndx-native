@@ -75,6 +75,8 @@ export default class LibndxAdapter implements Libndx {
 
         const lib = LibndxAdapter.koffiLoad(this.libndxPath)
 
+        const wrap0 = (f: () => string) => () => f()
+
         const wrap1 = (f: (a: string) => string) => (args: [string]) =>
             f(args[0])
 
@@ -172,6 +174,9 @@ export default class LibndxAdapter implements Libndx {
             ),
             stop_ble_observer_backend: wrap1(
                 lib.func('str stop_ble_observer_backend(str uuid)')
+            ),
+            discover_usb_serial_numbers: wrap0(
+                lib.func('str discover_usb_serial_numbers()')
             ),
             create_usb_backend: wrap1(
                 lib.func('str create_usb_backend(str config)')
@@ -372,9 +377,22 @@ export default class LibndxAdapter implements Libndx {
         return JSON.parse(this.bindings.stop_ble_observer_backend([deviceUuid]))
     }
 
+    public discoverUsbSerialNumbers() {
+        const { serial_numbers: serialNumbers, ...result } = JSON.parse(
+            this.bindings.discover_usb_serial_numbers()
+        )
+
+        return { ...result, serialNumbers }
+    }
+
     public createUsbBackend(options: UsbOptions) {
-        const { serialNumber } = options
-        const configJson = JSON.stringify({ serial_number: serialNumber })
+        const { serialNumber, baudRate, usesRtsCts } = options
+
+        const configJson = JSON.stringify({
+            serial_number: serialNumber,
+            baud_rate: baudRate,
+            flow_control: usesRtsCts ? 'rts_cts' : undefined,
+        })
 
         return JSON.parse(this.bindings.create_usb_backend([configJson]))
     }
@@ -516,6 +534,7 @@ export interface Libndx {
     startBleObserverBackend(options: StartBleObserverOptions): NativeResult
     stopBleObserverBackend(options: BleOptions): NativeResult
 
+    discoverUsbSerialNumbers(): NativeResult & { serialNumbers?: string[] }
     createUsbBackend(options: UsbOptions): NativeResult
     startUsbBackend(options: StartUsbOptions): NativeResult
     writeUsbBackend(options: WriteUsbOptions): NativeResult
@@ -599,6 +618,8 @@ export interface NativeAdvertisement {
 
 export interface UsbOptions {
     serialNumber: string
+    baudRate?: number
+    usesRtsCts?: boolean
 }
 
 export interface StartUsbOptions extends UsbOptions {
@@ -632,6 +653,7 @@ export interface LibndxBindings {
     ): string
     stop_ble_observer_backend(args: [string]): string
 
+    discover_usb_serial_numbers(): string
     create_usb_backend(args: [string]): string
     start_usb_backend(args: [string, RegisteredCallbackPointer]): string
     write_usb_backend(args: [string, string]): string

@@ -37,6 +37,9 @@ export default class FakeLibndx implements Libndx {
     public static callsToWriteUsbBackend: WriteUsbOptions[] = []
     public static callsToStopUsbBackend: UsbOptions[] = []
 
+    public static numCallsToDiscoverUsbSerialNumbers = 0
+    public static fakeUsbSerialNumbers: string[] = []
+
     public static fakeResult: NativeResult = { status: 200 }
 
     public constructor(options?: LibndxAdapterOptions) {
@@ -100,6 +103,15 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
+    public discoverUsbSerialNumbers() {
+        FakeLibndx.numCallsToDiscoverUsbSerialNumbers++
+
+        return {
+            ...FakeLibndx.fakeResult,
+            serialNumbers: FakeLibndx.fakeUsbSerialNumbers,
+        }
+    }
+
     public createUsbBackend(options: UsbOptions) {
         FakeLibndx.callsToCreateUsbBackend.push(options)
         return FakeLibndx.fakeResult
@@ -133,6 +145,8 @@ export default class FakeLibndx implements Libndx {
         FakeLibndx.callsToCreateBleObserver = []
         FakeLibndx.callsToStartBleObserver = []
         FakeLibndx.callsToStopBleObserver = []
+        FakeLibndx.numCallsToDiscoverUsbSerialNumbers = 0
+        FakeLibndx.fakeUsbSerialNumbers = []
         FakeLibndx.callsToCreateUsbBackend = []
         FakeLibndx.callsToStartUsbBackend = []
         FakeLibndx.callsToWriteUsbBackend = []

@@ -117,6 +117,11 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     ][] = []
     private static readonly callsToStopBleObserver: string[][] = []
 
+    private static fakeDiscoverUsbResult: Record<string, unknown> = {
+        status: 200,
+        serial_numbers: [],
+    }
+
     private static readonly callsToCreateUsb: string[][] = []
     private static readonly callsToStartUsb: [
         string,
@@ -184,6 +189,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 'str create_ble_observer_backend(str config)',
                 'str start_ble_observer_backend(str uuid, OnAdvertisementFn *on_advertisement)',
                 'str stop_ble_observer_backend(str uuid)',
+                'str discover_usb_serial_numbers()',
                 'str create_usb_backend(str config)',
                 'str start_usb_backend(str serial, OnDataFn *on_data)',
                 'str write_usb_backend(str serial, str value)',
@@ -696,6 +702,66 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
+    protected static async createUsbBackendPassesBaudRateAndRtsCtsFlowControl() {
+        this.instance.createUsbBackend({
+            serialNumber: this.usbSerialNumber,
+            baudRate: 1000000,
+            usesRtsCts: true,
+        })
+
+        assert.isEqualDeep(
+            JSON.parse(this.callsToCreateUsb[0][0]),
+            {
+                serial_number: this.usbSerialNumber,
+                baud_rate: 1000000,
+                flow_control: 'rts_cts',
+            },
+            'createUsbBackend did not pass baud rate and RTS/CTS flow control!'
+        )
+    }
+
+    @test()
+    protected static async createUsbBackendLeavesFlowControlToNativeDefaultWithoutRtsCts() {
+        this.instance.createUsbBackend({
+            serialNumber: this.usbSerialNumber,
+            usesRtsCts: false,
+        })
+
+        assert.isEqualDeep(
+            JSON.parse(this.callsToCreateUsb[0][0]),
+            { serial_number: this.usbSerialNumber },
+            'createUsbBackend should not have passed a flow control!'
+        )
+    }
+
+    @test()
+    protected static async discoverUsbSerialNumbersReturnsSerialNumbersFromBinding() {
+        this.fakeDiscoverUsbResult = {
+            status: 200,
+            serial_numbers: ['AAAA1111', 'ZZZZ9999'],
+        }
+
+        assert.isEqualDeep(
+            this.instance.discoverUsbSerialNumbers(),
+            { status: 200, serialNumbers: ['AAAA1111', 'ZZZZ9999'] },
+            'discoverUsbSerialNumbers did not return serial numbers from binding!'
+        )
+    }
+
+    @test()
+    protected static async discoverUsbSerialNumbersReturnsErrorFromBinding() {
+        this.fakeDiscoverUsbResult = { status: 500, error: 'no /dev' }
+
+        const { status, error } = this.instance.discoverUsbSerialNumbers()
+
+        assert.isEqualDeep(
+            { status, error },
+            { status: 500, error: 'no /dev' },
+            'discoverUsbSerialNumbers did not return error from binding!'
+        )
+    }
+
+    @test()
     protected static async createUsbBackendReturnsJson() {
         const json = this.createUsbBackend()
 
@@ -995,6 +1061,8 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 this.callsToStopBleObserver.push(args)
                 return JSON.stringify(this.successfulResult)
             },
+            discover_usb_serial_numbers: () =>
+                JSON.stringify(this.fakeDiscoverUsbResult),
             create_usb_backend: (args) => {
                 this.callsToCreateUsb.push(args)
                 return JSON.stringify(this.successfulResult)
