@@ -5,6 +5,7 @@ import {
     InfoHandle,
     CreateStreamInfoOptions,
     AppendChannelsToStreamInfoOptions,
+    AppendDescriptionToStreamInfoOptions,
     CreateOutletOptions,
     PushSampleFloatTimestampOptions,
     PushSampleStringTimestampOptions,
@@ -56,6 +57,7 @@ export default class FakeLiblsl implements Liblsl {
 
     public lastCreateStreamInfoOptions?: CreateStreamInfoOptions
     public lastAppendChannelsToStreamInfoOptions?: AppendChannelsToStreamInfoOptions
+    public lastAppendDescriptionToStreamInfoOptions?: AppendDescriptionToStreamInfoOptions
     public lastDestroyStreamInfoOptions?: DestroyStreamInfoOptions
     public lastResolveByPropOptions?: ResolveByPropOptions
     public lastGetChannelCountOptions?: GetChannelCountOptions
@@ -92,6 +94,12 @@ export default class FakeLiblsl implements Liblsl {
         options: AppendChannelsToStreamInfoOptions
     ) {
         this.lastAppendChannelsToStreamInfoOptions = options
+    }
+
+    public appendDescriptionToStreamInfo(
+        options: AppendDescriptionToStreamInfoOptions
+    ) {
+        this.lastAppendDescriptionToStreamInfoOptions = options
     }
 
     public getChannelCount(options: GetChannelCountOptions) {
@@ -195,6 +203,7 @@ export default class FakeLiblsl implements Liblsl {
     public resetTestDouble() {
         this.lastCreateStreamInfoOptions = undefined
         this.lastAppendChannelsToStreamInfoOptions = undefined
+        this.lastAppendDescriptionToStreamInfoOptions = undefined
         this.lastCreateOutletOptions = undefined
         this.lastPushSampleFloatTimestampOptions = undefined
         this.lastPushSampleStringTimestampOptions = undefined

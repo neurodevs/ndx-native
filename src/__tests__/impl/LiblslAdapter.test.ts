@@ -480,6 +480,40 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
     }
 
     @test()
+    protected static async appendingDescriptionGetsDescriptionOfInfo() {
+        const infoHandle = this.createRandomInfoHandle()
+
+        this.instance.appendDescriptionToStreamInfo({
+            infoHandle,
+            fields: { [this.generateId()]: this.generateId() },
+        })
+
+        assert.isEqualDeep(this.getDescriptionParams?.[0], [infoHandle])
+    }
+
+    @test()
+    protected static async appendingDescriptionAddsEachFieldToDescription() {
+        const fields = {
+            [this.generateId()]: this.generateId(),
+            [this.generateId()]: this.generateId(),
+        }
+
+        this.instance.appendDescriptionToStreamInfo({
+            infoHandle: this.createRandomInfoHandle(),
+            fields,
+        })
+
+        assert.isEqualDeep(
+            this.appendChildValueParams,
+            Object.entries(fields).map(([name, value]) => [
+                this.fakeDescHandle,
+                name,
+                value,
+            ])
+        )
+    }
+
+    @test()
     protected static async canDestroyOutlet() {
         const { outletHandle } = this.createRandomOutlet()
         const options = { outletHandle }

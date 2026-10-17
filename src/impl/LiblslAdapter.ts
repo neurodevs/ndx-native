@@ -225,6 +225,18 @@ export default class LiblslAdapter implements Liblsl {
         }
     }
 
+    public appendDescriptionToStreamInfo(
+        options: AppendDescriptionToStreamInfoOptions
+    ) {
+        const { infoHandle, fields } = options
+
+        const description = this.bindings.lsl_get_desc([infoHandle])
+
+        for (const [name, value] of Object.entries(fields)) {
+            this.bindings.lsl_append_child_value([description, name, value])
+        }
+    }
+
     public destroyStreamInfo(options: DestroyStreamInfoOptions) {
         const { infoHandle } = options
         this.bindings.lsl_destroy_streaminfo([infoHandle])
@@ -591,6 +603,9 @@ export interface Liblsl {
     createStreamInfo(options: CreateStreamInfoOptions): InfoHandle
     destroyStreamInfo(options: DestroyStreamInfoOptions): void
     appendChannelsToStreamInfo(options: AppendChannelsToStreamInfoOptions): void
+    appendDescriptionToStreamInfo(
+        options: AppendDescriptionToStreamInfoOptions
+    ): void
     getChannelCount(options: GetChannelCountOptions): number
 
     resolveByProp(options: ResolveByPropOptions): InfoHandle[]
@@ -635,6 +650,11 @@ export interface CreateStreamInfoOptions {
 export interface AppendChannelsToStreamInfoOptions {
     infoHandle: InfoHandle
     channels: readonly LslChannel[]
+}
+
+export interface AppendDescriptionToStreamInfoOptions {
+    infoHandle: InfoHandle
+    fields: Readonly<Record<string, string>>
 }
 
 export interface GetChannelCountOptions {
@@ -717,7 +737,9 @@ export interface LiblslBindings {
     lsl_get_desc(args: [InfoHandle]): DescriptionHandle
     lsl_get_channel_count(args: [InfoHandle]): number
     lsl_append_child(args: [DescriptionHandle, string]): ChildHandle
-    lsl_append_child_value(args: [ChildHandle, string, string]): void
+    lsl_append_child_value(
+        args: [ChildHandle | DescriptionHandle, string, string]
+    ): void
     lsl_destroy_streaminfo(args: [InfoHandle]): void
 
     lsl_create_outlet(args: [InfoHandle, number, number]): OutletHandle
