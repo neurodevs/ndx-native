@@ -10,6 +10,8 @@ import {
     NativeResult,
     BleGattRssiOptions,
     DiscoverBleUuidOptions,
+    StartBleScanOptions,
+    StopBleScanOptions,
     StartUsbOptions,
     StartBleObserverOptions,
 } from '../../impl/LibndxAdapter.js'
@@ -18,6 +20,8 @@ export default class FakeLibndx implements Libndx {
     public static callsToConstructor: (LibndxAdapterOptions | undefined)[] = []
 
     public static callsToDiscoverBleUuid: DiscoverBleUuidOptions[] = []
+    public static callsToStartBleScan: StartBleScanOptions[] = []
+    public static callsToStopBleScan: StopBleScanOptions[] = []
 
     public static callsToCreateBleGattBackend: BleOptions[] = []
     public static callsToStartBleGattBackend: StartBleGattOptions[] = []
@@ -48,6 +52,16 @@ export default class FakeLibndx implements Libndx {
 
     public discoverBleUuid(options: DiscoverBleUuidOptions) {
         FakeLibndx.callsToDiscoverBleUuid.push(options)
+        return FakeLibndx.fakeResult
+    }
+
+    public startBleScan(options: StartBleScanOptions) {
+        FakeLibndx.callsToStartBleScan.push(options)
+        return FakeLibndx.fakeResult
+    }
+
+    public stopBleScan(options: StopBleScanOptions) {
+        FakeLibndx.callsToStopBleScan.push(options)
         return FakeLibndx.fakeResult
     }
 
@@ -135,6 +149,8 @@ export default class FakeLibndx implements Libndx {
     public static resetTestDouble() {
         FakeLibndx.callsToConstructor = []
         FakeLibndx.callsToDiscoverBleUuid = []
+        FakeLibndx.callsToStartBleScan = []
+        FakeLibndx.callsToStopBleScan = []
         FakeLibndx.callsToCreateBleGattBackend = []
         FakeLibndx.callsToStartBleGattBackend = []
         FakeLibndx.callsToRegisterBleGattCharCallbacks = []

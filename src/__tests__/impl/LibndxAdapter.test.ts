@@ -90,6 +90,11 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         namePrefix: string
         onDiscovered: unknown
     }[] = []
+    private static readonly callsToStartBleScan: {
+        namePrefix: string
+        onScanned: unknown
+    }[] = []
+    private static readonly callsToStopBleScan: string[][] = []
     private static readonly callsToCreateBleGatt: string[][] = []
     private static readonly callsToStartBleGatt: {
         uuid: string
@@ -179,6 +184,8 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
             this.koffiFuncSignatures,
             [
                 'str discover_ble_uuid(str name_prefix, OnDiscoveredFn *on_discovered)',
+                'str start_ble_scan(str name_prefix, OnScannedFn *on_scanned)',
+                'str stop_ble_scan(str name_prefix)',
                 'str create_ble_gatt_backend(str config)',
                 'str start_ble_gatt_backend(str uuid, OnConnectedFn *on_connected, CharCallback *callbacks, int num_callbacks)',
                 'str register_ble_gatt_char_callbacks(str uuid, CharCallback *callbacks, int num_callbacks)',
@@ -206,6 +213,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
             [
                 'void CharCallbackFn(uint8 *data, int length, double timestamp_sec)',
                 'void OnDiscoveredFn(str uuid)',
+                'void OnScannedFn(str uuid, str name)',
                 'void OnConnectedFn(str uuid, str name)',
                 'void OnRssiFn(int rssi)',
                 'void OnDataFn(uint8 *data, uint64 length, double timestamp_sec)',
@@ -273,6 +281,105 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         const fake = new FakeLibndx()
         LibndxAdapter.setInstance(fake)
         assert.isEqual(LibndxAdapter.getInstance(), fake)
+    }
+
+    @test()
+    protected static async startBleScanScansForNamePrefix() {
+        const json = this.startBleScan()
+
+        assert.isEqualDeep(
+            {
+                json,
+                namePrefix: this.callsToStartBleScan[0]?.namePrefix,
+            },
+            { json: this.successfulResult, namePrefix: this.bleNamePrefix },
+            'startBleScan did not scan for the name prefix!'
+        )
+    }
+
+    @test()
+    protected static async registersOneScanCallbackPerPrefixAcrossScans() {
+        let numRegistered = 0
+        LibndxAdapter.koffiRegister = ((fn: unknown) => {
+            numRegistered++
+            return fn
+        }) as any
+
+        this.startBleScan()
+        this.instance.stopBleScan({ namePrefix: this.bleNamePrefix })
+        this.startBleScan()
+        this.instance.startBleScan({
+            namePrefix: this.generateId(),
+            onScanned: () => {},
+        })
+
+        assert.isEqual(
+            numRegistered,
+            2,
+            'Did not register one scan callback per prefix across scans!'
+        )
+    }
+
+    @test()
+    protected static async reportsScansOnlyToTheLatestOnScanned() {
+        const reports: string[] = []
+
+        this.startBleScan(() => reports.push('earlier'))
+        this.startBleScan(() => reports.push('latest'))
+        this.nativeOnScanned(1)('UUID-1', 'Muse-1A2B')
+
+        assert.isEqualDeep(
+            reports,
+            ['latest'],
+            'Did not report scans only to the latest onScanned!'
+        )
+    }
+
+    @test()
+    protected static async stopsReportingScansOnceStopped() {
+        const reports: string[] = []
+
+        this.startBleScan((uuid) => reports.push(uuid))
+        this.instance.stopBleScan({ namePrefix: this.bleNamePrefix })
+        this.nativeOnScanned(0)('UUID-1', 'Muse-1A2B')
+
+        assert.isEqualDeep(reports, [], 'Reported a scan after it was stopped!')
+    }
+
+    @test()
+    protected static async startBleScanReportsUuidAndNameOfEachScan() {
+        const scanned: [string, string][] = []
+
+        this.startBleScan((uuid, name) => scanned.push([uuid, name]))
+
+        const onScanned = this.callsToStartBleScan[0]?.onScanned as (
+            uuid: string,
+            name: string
+        ) => void
+        onScanned('UUID-1', 'Muse-1A2B')
+        onScanned('UUID-2', 'Muse-3C4D')
+
+        assert.isEqualDeep(
+            scanned,
+            [
+                ['UUID-1', 'Muse-1A2B'],
+                ['UUID-2', 'Muse-3C4D'],
+            ],
+            'startBleScan did not report uuid and name of each scan!'
+        )
+    }
+
+    @test()
+    protected static async stopBleScanStopsScanForNamePrefix() {
+        const json = this.instance.stopBleScan({
+            namePrefix: this.bleNamePrefix,
+        })
+
+        assert.isEqualDeep(
+            { json, calls: this.callsToStopBleScan },
+            { json: this.successfulResult, calls: [[this.bleNamePrefix]] },
+            'stopBleScan did not stop scan for the name prefix!'
+        )
     }
 
     @test()
@@ -897,6 +1004,22 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         )
     }
 
+    private static nativeOnScanned(call: number) {
+        return this.callsToStartBleScan[call]?.onScanned as (
+            uuid: string,
+            name: string
+        ) => void
+    }
+
+    private static startBleScan(
+        onScanned?: (uuid: string, name: string) => void
+    ) {
+        return this.instance.startBleScan({
+            namePrefix: this.bleNamePrefix,
+            onScanned: onScanned ?? (() => {}),
+        })
+    }
+
     private static discoverBleUuid(onDiscovered?: (uuid: string) => void) {
         return this.instance.discoverBleUuid({
             namePrefix: this.bleNamePrefix,
@@ -1009,6 +1132,17 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 })
                 return JSON.stringify(this.successfulResult)
             },
+            start_ble_scan: (args: any) => {
+                this.callsToStartBleScan.push({
+                    namePrefix: args[0],
+                    onScanned: args[1],
+                })
+                return JSON.stringify(this.successfulResult)
+            },
+            stop_ble_scan: (args) => {
+                this.callsToStopBleScan.push(args)
+                return JSON.stringify(this.successfulResult)
+            },
             create_ble_gatt_backend: (args) => {
                 this.callsToCreateBleGatt.push(args)
                 return JSON.stringify(this.successfulResult)
@@ -1084,6 +1218,8 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
 
     private static resetCallsToFakeBindings() {
         this.callsToDiscoverBle.length = 0
+        this.callsToStartBleScan.length = 0
+        this.callsToStopBleScan.length = 0
         this.callsToCreateBleGatt.length = 0
         this.callsToStartBleGatt.length = 0
         this.callsToRegisterBleGattCharCallbacks.length = 0

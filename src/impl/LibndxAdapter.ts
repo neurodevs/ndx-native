@@ -12,6 +12,7 @@ export default class LibndxAdapter implements Libndx {
     private static charCallbackProto?: ReturnType<typeof koffi.proto>
     private static charCallbackStruct?: ReturnType<typeof koffi.struct>
     private static onDiscoveredProto?: ReturnType<typeof koffi.proto>
+    private static onScannedProto?: ReturnType<typeof koffi.proto>
     private static onConnectedProto?: ReturnType<typeof koffi.proto>
     private static onRssiProto?: ReturnType<typeof koffi.proto>
     private static onDataProto?: ReturnType<typeof koffi.proto>
@@ -20,6 +21,12 @@ export default class LibndxAdapter implements Libndx {
     private static instance?: Libndx
 
     protected registeredCallbacks: RegisteredCallbackPointer[] = []
+
+    private readonly onScannedByPrefix = new Map<string, OnScannedCallback>()
+    private readonly registeredOnScannedByPrefix = new Map<
+        string,
+        RegisteredCallbackPointer
+    >()
 
     private libndxPath: string
     private bindings!: LibndxBindings
@@ -51,6 +58,7 @@ export default class LibndxAdapter implements Libndx {
         delete this.charCallbackProto
         delete this.charCallbackStruct
         delete this.onDiscoveredProto
+        delete this.onScannedProto
         delete this.onConnectedProto
         delete this.onRssiProto
         delete this.onDataProto
@@ -68,6 +76,7 @@ export default class LibndxAdapter implements Libndx {
     private defineBindings() {
         LibndxAdapter.getCharCallbackStruct()
         LibndxAdapter.getOnDiscoveredProto()
+        LibndxAdapter.getOnScannedProto()
         LibndxAdapter.getOnConnectedProto()
         LibndxAdapter.getOnRssiProto()
         LibndxAdapter.getOnDataProto()
@@ -134,6 +143,14 @@ export default class LibndxAdapter implements Libndx {
                 lib.func(
                     'str discover_ble_uuid(str name_prefix, OnDiscoveredFn *on_discovered)'
                 )
+            ),
+            start_ble_scan: wrapStrAndCallback(
+                lib.func(
+                    'str start_ble_scan(str name_prefix, OnScannedFn *on_scanned)'
+                )
+            ),
+            stop_ble_scan: wrap1(
+                lib.func('str stop_ble_scan(str name_prefix)')
             ),
             create_ble_gatt_backend: wrap1(
                 lib.func('str create_ble_gatt_backend(str config)')
@@ -231,6 +248,44 @@ export default class LibndxAdapter implements Libndx {
                 registeredOnDiscovered,
             ])
         )
+    }
+
+    public startBleScan(options: StartBleScanOptions) {
+        const { namePrefix, onScanned } = options
+
+        this.onScannedByPrefix.set(namePrefix, onScanned)
+
+        return JSON.parse(
+            this.bindings.start_ble_scan([
+                namePrefix,
+                this.registeredOnScannedFor(namePrefix),
+            ])
+        )
+    }
+
+    public stopBleScan(options: StopBleScanOptions) {
+        const { namePrefix } = options
+
+        this.onScannedByPrefix.delete(namePrefix)
+
+        return JSON.parse(this.bindings.stop_ble_scan([namePrefix]))
+    }
+
+    private registeredOnScannedFor(namePrefix: string) {
+        if (!this.registeredOnScannedByPrefix.has(namePrefix)) {
+            this.registeredOnScannedByPrefix.set(
+                namePrefix,
+                LibndxAdapter.koffiRegister(
+                    (uuid: string, name: string) =>
+                        this.onScannedByPrefix.get(namePrefix)?.(uuid, name),
+                    LibndxAdapter.koffiPointer(
+                        LibndxAdapter.getOnScannedProto()!
+                    )
+                )
+            )
+        }
+
+        return this.registeredOnScannedByPrefix.get(namePrefix)!
     }
 
     public createBleGattBackend(options: BleOptions) {
@@ -492,6 +547,15 @@ export default class LibndxAdapter implements Libndx {
         return this.onDiscoveredProto
     }
 
+    private static getOnScannedProto() {
+        if (!this.onScannedProto) {
+            this.onScannedProto = LibndxAdapter.koffiProto(
+                'void OnScannedFn(str uuid, str name)'
+            )
+        }
+        return this.onScannedProto
+    }
+
     private static getOnAdvertisementProto() {
         if (!this.onAdvertisementProto) {
             this.onAdvertisementProto = LibndxAdapter.koffiProto(
@@ -519,6 +583,8 @@ export default class LibndxAdapter implements Libndx {
 
 export interface Libndx {
     discoverBleUuid(options: DiscoverBleUuidOptions): NativeResult
+    startBleScan(options: StartBleScanOptions): NativeResult
+    stopBleScan(options: StopBleScanOptions): NativeResult
 
     createBleGattBackend(options: BleOptions): NativeResult
     startBleGattBackend(options: StartBleGattOptions): NativeResult
@@ -558,6 +624,17 @@ export interface NativeCharCallback {
 export interface DiscoverBleUuidOptions {
     namePrefix: string
     onDiscovered: (uuid: string) => void
+}
+
+export interface StartBleScanOptions {
+    namePrefix: string
+    onScanned: OnScannedCallback
+}
+
+export type OnScannedCallback = (uuid: string, name: string) => void
+
+export interface StopBleScanOptions {
+    namePrefix: string
 }
 
 export interface BleOptions {
@@ -632,6 +709,8 @@ export interface WriteUsbOptions extends UsbOptions {
 
 export interface LibndxBindings {
     discover_ble_uuid(args: [string, RegisteredCallbackPointer]): string
+    start_ble_scan(args: [string, RegisteredCallbackPointer]): string
+    stop_ble_scan(args: [string]): string
 
     create_ble_gatt_backend(args: [string]): string
     start_ble_gatt_backend(
