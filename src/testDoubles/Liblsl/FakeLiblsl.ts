@@ -22,7 +22,7 @@ import {
     OpenStreamOptions,
     CloseStreamOptions,
     GetChannelCountOptions,
-    LslDescription,
+    DescriptionElements,
     GetDescriptionOptions,
 } from '../../impl/LiblslAdapter.js'
 
@@ -46,7 +46,7 @@ export default class FakeLiblsl implements Liblsl {
 
     public static fakeSampleTimestampSec = 1
     public static fakeChannelCount = 3
-    public static fakeDescription: LslDescription[] = []
+    public static fakeDescription: DescriptionElements[] = []
     public static fakeErrorCode = 0
 
     public liblslPath: string = generateId()

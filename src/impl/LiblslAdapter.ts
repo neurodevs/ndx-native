@@ -272,8 +272,8 @@ export default class LiblslAdapter implements Liblsl {
         return this.elementsIn(this.bindings.lsl_get_desc([infoHandle]))
     }
 
-    private elementsIn(parent: XmlHandle): LslDescription[] {
-        const elements: LslDescription[] = []
+    private elementsIn(parent: XmlHandle): DescriptionElements[] {
+        const elements: DescriptionElements[] = []
 
         for (
             let child = this.bindings.lsl_first_child([parent]);
@@ -292,7 +292,7 @@ export default class LiblslAdapter implements Liblsl {
         return this.bindings.lsl_empty([element]) !== 0
     }
 
-    private elementFrom(element: XmlHandle): LslDescription {
+    private elementFrom(element: XmlHandle): DescriptionElements {
         const name = this.bindings.lsl_name([element])
 
         return this.holdsOnlyText(element)
@@ -678,7 +678,7 @@ export interface Liblsl {
         options: AppendDescriptionToStreamInfoOptions
     ): void
     getChannelCount(options: GetChannelCountOptions): number
-    getDescription(options: GetDescriptionOptions): LslDescription[]
+    getDescription(options: GetDescriptionOptions): DescriptionElements[]
 
     resolveByProp(options: ResolveByPropOptions): InfoHandle[]
 
@@ -733,10 +733,10 @@ export interface GetDescriptionOptions {
     infoHandle: InfoHandle
 }
 
-export interface LslDescription {
+export interface DescriptionElements {
     name: string
     value?: string
-    children?: LslDescription[]
+    children?: DescriptionElements[]
 }
 
 export interface GetChannelCountOptions {
