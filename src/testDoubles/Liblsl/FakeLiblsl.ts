@@ -22,6 +22,8 @@ import {
     OpenStreamOptions,
     CloseStreamOptions,
     GetChannelCountOptions,
+    LslDescription,
+    GetDescriptionOptions,
 } from '../../impl/LiblslAdapter.js'
 
 export default class FakeLiblsl implements Liblsl {
@@ -44,6 +46,7 @@ export default class FakeLiblsl implements Liblsl {
 
     public static fakeSampleTimestampSec = 1
     public static fakeChannelCount = 3
+    public static fakeDescription: LslDescription[] = []
     public static fakeErrorCode = 0
 
     public liblslPath: string = generateId()
@@ -61,6 +64,7 @@ export default class FakeLiblsl implements Liblsl {
     public lastDestroyStreamInfoOptions?: DestroyStreamInfoOptions
     public lastResolveByPropOptions?: ResolveByPropOptions
     public lastGetChannelCountOptions?: GetChannelCountOptions
+    public lastGetDescriptionOptions?: GetDescriptionOptions
 
     public lastCreateOutletOptions?: CreateOutletOptions
     public lastPushSampleFloatTimestampOptions?: PushSampleFloatTimestampOptions
@@ -105,6 +109,11 @@ export default class FakeLiblsl implements Liblsl {
     public getChannelCount(options: GetChannelCountOptions) {
         this.lastGetChannelCountOptions = options
         return FakeLiblsl.fakeChannelCount
+    }
+
+    public getDescription(options: GetDescriptionOptions) {
+        this.lastGetDescriptionOptions = options
+        return FakeLiblsl.fakeDescription
     }
 
     public destroyStreamInfo(options: DestroyStreamInfoOptions) {

@@ -50,6 +50,10 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
     private static appendChildHitCount: number
     private static getDescriptionParams?: [InfoHandle]
     private static getChannelCountParams?: [InfoHandle]
+    private static readonly emptyXmlNode: FakeXmlNode = {
+        name: '',
+        children: [],
+    }
 
     private static createOutletParams?: any[]
     private static pushSampleFloatTimestampParams?: any[]
@@ -89,7 +93,7 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
         process.env.LIBLSL_PATH = this.generateId()
 
         this.fakeInfoHandle = {}
-        this.fakeDescHandle = {}
+        this.fakeDescHandle = this.fakeElement('desc')
         this.fakeOutletHandle = {}
         this.fakeChildHandle = {}
         this.fakeChildNamedChannel = {}
@@ -255,6 +259,36 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
                     DataType.String,
                     DataType.String,
                 ],
+            },
+            lsl_first_child: {
+                library: 'lsl',
+                retType: DataType.External,
+                paramsType: [DataType.External],
+            },
+            lsl_next_sibling: {
+                library: 'lsl',
+                retType: DataType.External,
+                paramsType: [DataType.External],
+            },
+            lsl_empty: {
+                library: 'lsl',
+                retType: DataType.I32,
+                paramsType: [DataType.External],
+            },
+            lsl_is_text: {
+                library: 'lsl',
+                retType: DataType.I32,
+                paramsType: [DataType.External],
+            },
+            lsl_name: {
+                library: 'lsl',
+                retType: DataType.String,
+                paramsType: [DataType.External],
+            },
+            lsl_child_value: {
+                library: 'lsl',
+                retType: DataType.String,
+                paramsType: [DataType.External],
             },
         })
     }
@@ -477,6 +511,73 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
         assert.isEqual(this.appendChildValueParams[3][2], channel2.label)
         assert.isEqual(this.appendChildValueParams[4][2], channel2.units)
         assert.isEqual(this.appendChildValueParams[5][2], channel2.type)
+    }
+
+    @test()
+    protected static async getsDescriptionOfGivenInfo() {
+        const infoHandle = this.createRandomInfoHandle()
+
+        this.instance.getDescription({ infoHandle })
+
+        assert.isEqualDeep(this.getDescriptionParams?.[0], [infoHandle])
+    }
+
+    @test()
+    protected static async readsEachFieldOfDescription() {
+        this.fakeDescHandle = this.fakeElement('desc', [
+            this.fakeElement('manufacturer', 'Interaxon Inc.'),
+            this.fakeElement('nickname', 'Alice'),
+        ])
+
+        assert.isEqualDeep(this.readDescription(), [
+            { name: 'manufacturer', value: 'Interaxon Inc.' },
+            { name: 'nickname', value: 'Alice' },
+        ])
+    }
+
+    @test()
+    protected static async readsNestedElementsAsChildren() {
+        this.fakeDescHandle = this.fakeElement('desc', [
+            this.fakeElement('channels', [
+                this.fakeElement('channel', [
+                    this.fakeElement('label', 'TP9'),
+                    this.fakeElement('unit', 'microvolt'),
+                ]),
+            ]),
+        ])
+
+        assert.isEqualDeep(this.readDescription(), [
+            {
+                name: 'channels',
+                children: [
+                    {
+                        name: 'channel',
+                        children: [
+                            { name: 'label', value: 'TP9' },
+                            { name: 'unit', value: 'microvolt' },
+                        ],
+                    },
+                ],
+            },
+        ])
+    }
+
+    @test()
+    protected static async readsEmptyElementAsEmptyValue() {
+        this.fakeDescHandle = this.fakeElement('desc', [
+            this.fakeElement('empty'),
+        ])
+
+        assert.isEqualDeep(this.readDescription(), [
+            { name: 'empty', value: '' },
+        ])
+    }
+
+    @test()
+    protected static async readsEmptyDescriptionAsNoElements() {
+        this.fakeDescHandle = this.fakeElement('desc')
+
+        assert.isEqualDeep(this.readDescription(), [])
     }
 
     @test()
@@ -943,6 +1044,28 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
         )
     }
 
+    private static readDescription() {
+        return this.instance.getDescription({
+            infoHandle: this.createRandomInfoHandle(),
+        })
+    }
+
+    private static fakeElement(
+        name: string,
+        contents: string | FakeXmlNode[] = []
+    ): FakeXmlNode {
+        const children =
+            typeof contents === 'string'
+                ? [{ name: '', isText: true, value: contents, children: [] }]
+                : contents
+
+        children.forEach((child, index) => {
+            child.next = children[index + 1]
+        })
+
+        return { name, children }
+    }
+
     private static createRandomInfoHandle() {
         return this.instance.createStreamInfo(
             this.generateRandomCreateStreamInfoOptions()
@@ -1153,8 +1276,28 @@ export default class LiblslAdapterTest extends AbstractPackageTest {
             lsl_append_child_value: (params: any[]) => {
                 this.appendChildValueParams.push(params)
             },
+            lsl_first_child: ([element]: [FakeXmlNode]) =>
+                element.children[0] ?? this.emptyXmlNode,
+            lsl_next_sibling: ([element]: [FakeXmlNode]) =>
+                element.next ?? this.emptyXmlNode,
+            lsl_empty: ([element]: [FakeXmlNode]) =>
+                element === this.emptyXmlNode ? 1 : 0,
+            lsl_is_text: ([element]: [FakeXmlNode]) => (element.isText ? 1 : 0),
+            lsl_name: ([element]: [FakeXmlNode]) => element.name,
+            lsl_child_value: ([element]: [FakeXmlNode]) =>
+                element.children[0]?.isText
+                    ? (element.children[0].value ?? '')
+                    : '',
         }
     }
+}
+
+interface FakeXmlNode {
+    name: string
+    children: FakeXmlNode[]
+    isText?: boolean
+    value?: string
+    next?: FakeXmlNode
 }
 
 export type FfiRsDefineOptions = FuncObj<FieldType, boolean | undefined>

@@ -172,6 +172,36 @@ export default class LiblslAdapter implements Liblsl {
                     DataType.String,
                 ],
             },
+            lsl_first_child: {
+                library: 'lsl',
+                retType: DataType.External,
+                paramsType: [DataType.External],
+            },
+            lsl_next_sibling: {
+                library: 'lsl',
+                retType: DataType.External,
+                paramsType: [DataType.External],
+            },
+            lsl_empty: {
+                library: 'lsl',
+                retType: DataType.I32,
+                paramsType: [DataType.External],
+            },
+            lsl_is_text: {
+                library: 'lsl',
+                retType: DataType.I32,
+                paramsType: [DataType.External],
+            },
+            lsl_name: {
+                library: 'lsl',
+                retType: DataType.String,
+                paramsType: [DataType.External],
+            },
+            lsl_child_value: {
+                library: 'lsl',
+                retType: DataType.String,
+                paramsType: [DataType.External],
+            },
         }) as LiblslBindings
     }
 
@@ -235,6 +265,47 @@ export default class LiblslAdapter implements Liblsl {
         for (const [name, value] of Object.entries(fields)) {
             this.bindings.lsl_append_child_value([description, name, value])
         }
+    }
+
+    public getDescription(options: GetDescriptionOptions) {
+        const { infoHandle } = options
+        return this.elementsIn(this.bindings.lsl_get_desc([infoHandle]))
+    }
+
+    private elementsIn(parent: XmlHandle): LslDescription[] {
+        const elements: LslDescription[] = []
+
+        for (
+            let child = this.bindings.lsl_first_child([parent]);
+            !this.isEmpty(child);
+            child = this.bindings.lsl_next_sibling([child])
+        ) {
+            if (!this.bindings.lsl_is_text([child])) {
+                elements.push(this.elementFrom(child))
+            }
+        }
+
+        return elements
+    }
+
+    private isEmpty(element: XmlHandle) {
+        return this.bindings.lsl_empty([element]) !== 0
+    }
+
+    private elementFrom(element: XmlHandle): LslDescription {
+        const name = this.bindings.lsl_name([element])
+
+        return this.holdsOnlyText(element)
+            ? { name, value: this.bindings.lsl_child_value([element]) }
+            : { name, children: this.elementsIn(element) }
+    }
+
+    private holdsOnlyText(element: XmlHandle) {
+        const firstChild = this.bindings.lsl_first_child([element])
+
+        return (
+            this.isEmpty(firstChild) || this.bindings.lsl_is_text([firstChild])
+        )
     }
 
     public destroyStreamInfo(options: DestroyStreamInfoOptions) {
@@ -607,6 +678,7 @@ export interface Liblsl {
         options: AppendDescriptionToStreamInfoOptions
     ): void
     getChannelCount(options: GetChannelCountOptions): number
+    getDescription(options: GetDescriptionOptions): LslDescription[]
 
     resolveByProp(options: ResolveByPropOptions): InfoHandle[]
 
@@ -655,6 +727,16 @@ export interface AppendChannelsToStreamInfoOptions {
 export interface AppendDescriptionToStreamInfoOptions {
     infoHandle: InfoHandle
     fields: Readonly<Record<string, string>>
+}
+
+export interface GetDescriptionOptions {
+    infoHandle: InfoHandle
+}
+
+export interface LslDescription {
+    name: string
+    value?: string
+    children?: LslDescription[]
 }
 
 export interface GetChannelCountOptions {
@@ -740,6 +822,12 @@ export interface LiblslBindings {
     lsl_append_child_value(
         args: [ChildHandle | DescriptionHandle, string, string]
     ): void
+    lsl_first_child(args: [XmlHandle]): XmlHandle
+    lsl_next_sibling(args: [XmlHandle]): XmlHandle
+    lsl_empty(args: [XmlHandle]): number
+    lsl_is_text(args: [XmlHandle]): number
+    lsl_name(args: [XmlHandle]): string
+    lsl_child_value(args: [XmlHandle]): string
     lsl_destroy_streaminfo(args: [InfoHandle]): void
 
     lsl_create_outlet(args: [InfoHandle, number, number]): OutletHandle
@@ -767,3 +855,5 @@ export interface OutletHandle {}
 export interface InletHandle {}
 export interface DescriptionHandle {}
 export interface ChildHandle {}
+
+export type XmlHandle = DescriptionHandle | ChildHandle
