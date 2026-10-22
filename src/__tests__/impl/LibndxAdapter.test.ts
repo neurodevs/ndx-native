@@ -8,8 +8,8 @@ import LibndxAdapter, {
 } from '../../impl/LibndxAdapter.js'
 import type {
     NativeAdvertisement,
-    NativeDisconnection,
     NativePeripheral,
+    StartBleGattOptions,
 } from '../../impl/LibndxAdapter.js'
 import AbstractPackageTest from '../AbstractPackageTest.js'
 import FakeLibndx from '../../testDoubles/Libndx/FakeLibndx.js'
@@ -100,6 +100,8 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static readonly callsToStartBleGatt: {
         uuid: string
         onConnected: unknown
+        onLost: unknown
+        onReconnect: unknown
         onDisconnected: unknown
         charCallbacks: CharacteristicCallback[]
     }[] = []
@@ -189,7 +191,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 'str start_ble_scan(str name_prefix, OnScannedFn *on_scanned)',
                 'str stop_ble_scan(str name_prefix)',
                 'str create_ble_gatt_backend(str config)',
-                'str start_ble_gatt_backend(str uuid, OnConnectedFn *on_connected, OnDisconnectedFn *on_disconnected, CharCallback *callbacks, int num_callbacks)',
+                'str start_ble_gatt_backend(str uuid, OnConnectedFn *on_connected, OnLostFn *on_lost, OnReconnectFn *on_reconnect, OnDisconnectedFn *on_disconnected, CharCallback *callbacks, int num_callbacks)',
                 'str register_ble_gatt_char_callbacks(str uuid, CharCallback *callbacks, int num_callbacks)',
                 'str write_ble_gatt_char(str uuid, str charUuid, str value)',
                 'str start_ble_gatt_rssi_polling(str uuid, int interval_ms, OnRssiFn *on_rssi)',
@@ -217,7 +219,9 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 'void OnDiscoveredFn(str uuid)',
                 'void OnScannedFn(str uuid, str name)',
                 'void OnConnectedFn(str uuid, str name)',
-                'void OnDisconnectedFn(int intentional)',
+                'void OnLostFn()',
+                'void OnReconnectFn()',
+                'void OnDisconnectedFn()',
                 'void OnRssiFn(int rssi)',
                 'void OnDataFn(uint8 *data, uint64 length, double timestamp_sec)',
                 'void OnAdvertisementFn(str advertisement_json)',
@@ -257,8 +261,10 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     protected static async onConnectedReceivesPeripheral() {
         let received: NativePeripheral | undefined = undefined
 
-        this.startBleGattBackend((peripheral: NativePeripheral) => {
-            received = peripheral
+        this.startBleGattBackend({
+            onConnected: (peripheral: NativePeripheral) => {
+                received = peripheral
+            },
         })
 
         const peripheral = { uuid: this.generateId(), name: 'Muse-1234' }
@@ -275,36 +281,42 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async onDisconnectedReceivesWhetherItWasIntentional() {
-        const received: NativeDisconnection[] = []
+    protected static async callsOnLostWhenConnectionIsLost() {
+        let wasCalled = false
 
-        this.instance.startBleGattBackend({
-            deviceUuid: this.bleDeviceUuid,
-            onConnected: () => {},
-            onDisconnected: (disconnection) => received.push(disconnection),
-            charCallbacks: this.charCallbacks,
-        })
+        this.startBleGattBackend({ onLost: () => (wasCalled = true) })
 
-        const registeredOnDisconnected = this.callsToStartBleGatt[0]
-            .onDisconnected as (intentional: number) => void
-        registeredOnDisconnected(0)
-        registeredOnDisconnected(1)
+        const registeredOnLost = this.callsToStartBleGatt[0]
+            .onLost as () => void
+        registeredOnLost()
 
-        assert.isEqualDeep(
-            received,
-            [{ isIntentional: false }, { isIntentional: true }],
-            'onDisconnected did not receive whether it was intentional!'
-        )
+        assert.isTrue(wasCalled, 'Did not call onLost!')
     }
 
     @test()
-    protected static async passesNoDisconnectCallbackWhenNoneIsGiven() {
-        this.startBleGattBackend()
+    protected static async callsOnReconnectWhenReconnected() {
+        let wasCalled = false
 
-        assert.isNull(
-            this.callsToStartBleGatt[0].onDisconnected,
-            'Passed a disconnect callback when none was given!'
-        )
+        this.startBleGattBackend({ onReconnect: () => (wasCalled = true) })
+
+        const registeredOnReconnect = this.callsToStartBleGatt[0]
+            .onReconnect as () => void
+        registeredOnReconnect()
+
+        assert.isTrue(wasCalled, 'Did not call onReconnect!')
+    }
+
+    @test()
+    protected static async callsOnDisconnectedOnceDisconnected() {
+        let wasCalled = false
+
+        this.startBleGattBackend({ onDisconnected: () => (wasCalled = true) })
+
+        const registeredOnDisconnected = this.callsToStartBleGatt[0]
+            .onDisconnected as () => void
+        registeredOnDisconnected()
+
+        assert.isTrue(wasCalled, 'Did not call onDisconnected!')
     }
 
     @test()
@@ -1069,13 +1081,15 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
     }
 
-    private static startBleGattBackend(
-        onConnected?: (peripheral: NativePeripheral) => void
-    ) {
+    private static startBleGattBackend(options?: Partial<StartBleGattOptions>) {
         return this.instance.startBleGattBackend({
             deviceUuid: this.bleDeviceUuid,
-            onConnected: onConnected || (() => {}),
+            onConnected: () => {},
+            onLost: () => {},
+            onReconnect: () => {},
+            onDisconnected: () => {},
             charCallbacks: this.charCallbacks,
+            ...options,
         })
     }
 
@@ -1187,8 +1201,10 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 this.callsToStartBleGatt.push({
                     uuid: args[0],
                     onConnected: args[1],
-                    onDisconnected: args[2],
-                    charCallbacks: args[3],
+                    onLost: args[2],
+                    onReconnect: args[3],
+                    onDisconnected: args[4],
+                    charCallbacks: args[5],
                 })
                 return JSON.stringify(this.successfulResult)
             },

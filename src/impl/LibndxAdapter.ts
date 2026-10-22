@@ -14,6 +14,8 @@ export default class LibndxAdapter implements Libndx {
     private static onDiscoveredProto?: ReturnType<typeof koffi.proto>
     private static onScannedProto?: ReturnType<typeof koffi.proto>
     private static onConnectedProto?: ReturnType<typeof koffi.proto>
+    private static onLostProto?: ReturnType<typeof koffi.proto>
+    private static onReconnectProto?: ReturnType<typeof koffi.proto>
     private static onDisconnectedProto?: ReturnType<typeof koffi.proto>
     private static onRssiProto?: ReturnType<typeof koffi.proto>
     private static onDataProto?: ReturnType<typeof koffi.proto>
@@ -61,6 +63,8 @@ export default class LibndxAdapter implements Libndx {
         delete this.onDiscoveredProto
         delete this.onScannedProto
         delete this.onConnectedProto
+        delete this.onLostProto
+        delete this.onReconnectProto
         delete this.onDisconnectedProto
         delete this.onRssiProto
         delete this.onDataProto
@@ -80,6 +84,8 @@ export default class LibndxAdapter implements Libndx {
         LibndxAdapter.getOnDiscoveredProto()
         LibndxAdapter.getOnScannedProto()
         LibndxAdapter.getOnConnectedProto()
+        LibndxAdapter.getOnLostProto()
+        LibndxAdapter.getOnReconnectProto()
         LibndxAdapter.getOnDisconnectedProto()
         LibndxAdapter.getOnRssiProto()
         LibndxAdapter.getOnDataProto()
@@ -146,7 +152,7 @@ export default class LibndxAdapter implements Libndx {
             ),
             start_ble_gatt_backend: wrapStartBleGatt(
                 lib.func(
-                    'str start_ble_gatt_backend(str uuid, OnConnectedFn *on_connected, OnDisconnectedFn *on_disconnected, CharCallback *callbacks, int num_callbacks)'
+                    'str start_ble_gatt_backend(str uuid, OnConnectedFn *on_connected, OnLostFn *on_lost, OnReconnectFn *on_reconnect, OnDisconnectedFn *on_disconnected, CharCallback *callbacks, int num_callbacks)'
                 )
             ),
             register_ble_gatt_char_callbacks: wrapRegisterBleGattCharCallbacks(
@@ -285,23 +291,34 @@ export default class LibndxAdapter implements Libndx {
     }
 
     public startBleGattBackend(options: StartBleGattOptions) {
-        const { deviceUuid, onConnected, onDisconnected, charCallbacks } =
-            options
+        const {
+            deviceUuid,
+            onConnected,
+            onLost,
+            onReconnect,
+            onDisconnected,
+            charCallbacks,
+        } = options
 
         const registeredOnConnected = LibndxAdapter.koffiRegister(
             (uuid: string, name: string) => onConnected({ uuid, name }),
             LibndxAdapter.koffiPointer(LibndxAdapter.getOnConnectedProto()!)
         )
 
-        const registeredOnDisconnected = onDisconnected
-            ? LibndxAdapter.koffiRegister(
-                  (intentional: number) =>
-                      onDisconnected({ isIntentional: intentional !== 0 }),
-                  LibndxAdapter.koffiPointer(
-                      LibndxAdapter.getOnDisconnectedProto()!
-                  )
-              )
-            : null
+        const registeredOnLost = LibndxAdapter.koffiRegister(
+            onLost,
+            LibndxAdapter.koffiPointer(LibndxAdapter.getOnLostProto()!)
+        )
+
+        const registeredOnReconnect = LibndxAdapter.koffiRegister(
+            onReconnect,
+            LibndxAdapter.koffiPointer(LibndxAdapter.getOnReconnectProto()!)
+        )
+
+        const registeredOnDisconnected = LibndxAdapter.koffiRegister(
+            onDisconnected,
+            LibndxAdapter.koffiPointer(LibndxAdapter.getOnDisconnectedProto()!)
+        )
 
         const registered = charCallbacks.map(
             ({ charUuid, charName, onData }) => ({
@@ -322,6 +339,8 @@ export default class LibndxAdapter implements Libndx {
             this.bindings.start_ble_gatt_backend([
                 deviceUuid,
                 registeredOnConnected,
+                registeredOnLost,
+                registeredOnReconnect,
                 registeredOnDisconnected,
                 registered,
                 registered.length,
@@ -521,10 +540,26 @@ export default class LibndxAdapter implements Libndx {
         return this.onConnectedProto
     }
 
+    private static getOnLostProto() {
+        if (!this.onLostProto) {
+            this.onLostProto = LibndxAdapter.koffiProto('void OnLostFn()')
+        }
+        return this.onLostProto
+    }
+
+    private static getOnReconnectProto() {
+        if (!this.onReconnectProto) {
+            this.onReconnectProto = LibndxAdapter.koffiProto(
+                'void OnReconnectFn()'
+            )
+        }
+        return this.onReconnectProto
+    }
+
     private static getOnDisconnectedProto() {
         if (!this.onDisconnectedProto) {
             this.onDisconnectedProto = LibndxAdapter.koffiProto(
-                'void OnDisconnectedFn(int intentional)'
+                'void OnDisconnectedFn()'
             )
         }
         return this.onDisconnectedProto
@@ -651,13 +686,11 @@ export interface BleOptions {
     deviceUuid: string
 }
 
-export interface NativeDisconnection {
-    isIntentional: boolean
-}
-
 export interface StartBleGattOptions extends BleOptions {
     onConnected: (peripheral: NativePeripheral) => void
-    onDisconnected?: (disconnection: NativeDisconnection) => void
+    onLost: () => void
+    onReconnect: () => void
+    onDisconnected: () => void
     charCallbacks: readonly CharacteristicCallback[]
 }
 
@@ -725,7 +758,9 @@ export interface WriteUsbOptions extends UsbOptions {
 export type StartBleGattArgs = [
     uuid: string,
     onConnected: RegisteredCallbackPointer,
-    onDisconnected: RegisteredCallbackPointer | null,
+    onLost: RegisteredCallbackPointer,
+    onReconnect: RegisteredCallbackPointer,
+    onDisconnected: RegisteredCallbackPointer,
     charCallbacks: NativeCharCallback[],
     numCallbacks: number,
 ]
