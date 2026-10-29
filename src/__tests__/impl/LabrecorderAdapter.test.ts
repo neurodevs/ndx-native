@@ -19,6 +19,9 @@ export default class LabrecorderAdapterTest extends AbstractPackageTest {
         filename: string
         watchFor: string[]
         watchForCount: number
+        infoKeys: string[]
+        infoValues: string[]
+        infoCount: number
     }[] = []
 
     private static callsToRecordingStop: RecordingHandle[] = []
@@ -68,6 +71,9 @@ export default class LabrecorderAdapterTest extends AbstractPackageTest {
                         DataType.String, // filename
                         DataType.StringArray, // watchfor
                         DataType.U64, // watchfor_count
+                        DataType.StringArray, // info_keys
+                        DataType.StringArray, // info_values
+                        DataType.U64, // info_count
                     ],
                 },
                 recording_stop: {
@@ -99,8 +105,32 @@ export default class LabrecorderAdapterTest extends AbstractPackageTest {
                 filename: this.filename,
                 watchFor: this.watchFor,
                 watchForCount: this.watchFor.length,
+                infoKeys: [],
+                infoValues: [],
+                infoCount: 0,
             },
             'Did not create a recording!'
+        )
+    }
+
+    @test()
+    protected static async passesHeaderInfoToBindings() {
+        this.instance.createRecording(this.filename, this.watchFor, {
+            protocol: '{"a":1}',
+            'protocol-sha256': 'abc123',
+        })
+
+        const { infoKeys, infoValues, infoCount } =
+            this.callsToRecordingCreate[0]
+
+        assert.isEqualDeep(
+            { infoKeys, infoValues, infoCount },
+            {
+                infoKeys: ['protocol', 'protocol-sha256'],
+                infoValues: ['{"a":1}', 'abc123'],
+                infoCount: 2,
+            },
+            'Did not pass the header info to the bindings!'
         )
     }
 
@@ -184,15 +214,21 @@ export default class LabrecorderAdapterTest extends AbstractPackageTest {
         this.callsToRecordingDelete = []
 
         return {
-            recording_create: ([filename, watchFor, watchForCount]: [
-                string,
-                string[],
-                number,
-            ]) => {
+            recording_create: ([
+                filename,
+                watchFor,
+                watchForCount,
+                infoKeys,
+                infoValues,
+                infoCount,
+            ]: [string, string[], number, string[], string[], number]) => {
                 this.callsToRecordingCreate.push({
                     filename,
                     watchFor,
                     watchForCount,
+                    infoKeys,
+                    infoValues,
+                    infoCount,
                 })
                 return {} as RecordingHandle
             },

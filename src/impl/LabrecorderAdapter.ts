@@ -40,6 +40,9 @@ export default class LabrecorderAdapter implements Labrecorder {
                     DataType.String,
                     DataType.StringArray,
                     DataType.U64,
+                    DataType.StringArray,
+                    DataType.StringArray,
+                    DataType.U64,
                 ],
             },
             recording_stop: {
@@ -55,11 +58,20 @@ export default class LabrecorderAdapter implements Labrecorder {
         }
     }
 
-    public createRecording(filename: string, watchFor: readonly string[]) {
+    public createRecording(
+        filename: string,
+        watchFor: readonly string[],
+        info: RecordingInfo = {}
+    ) {
+        const entries = Object.entries(info)
+
         return this.bindings.recording_create([
             filename,
             watchFor,
             watchFor.length,
+            entries.map(([key]) => key),
+            entries.map(([, value]) => value),
+            entries.length,
         ])
     }
 
@@ -83,7 +95,8 @@ export default class LabrecorderAdapter implements Labrecorder {
 export interface Labrecorder {
     createRecording(
         filename: string,
-        watchFor: readonly string[]
+        watchFor: readonly string[],
+        info?: RecordingInfo
     ): RecordingHandle
     stopRecording(recording: RecordingHandle): void
     deleteRecording(recording: RecordingHandle): void
@@ -94,10 +107,14 @@ export type LabrecorderConstructor = new (
 ) => Labrecorder
 
 export interface LabrecorderBindings {
-    recording_create(args: [string, readonly string[], number]): RecordingHandle
+    recording_create(
+        args: [string, readonly string[], number, string[], string[], number]
+    ): RecordingHandle
 
     recording_stop(args: [RecordingHandle]): void
     recording_delete(args: [RecordingHandle]): void
 }
 
 export type RecordingHandle = DataType.External
+
+export type RecordingInfo = Readonly<Record<string, string>>

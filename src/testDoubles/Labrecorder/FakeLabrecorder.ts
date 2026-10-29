@@ -1,4 +1,8 @@
-import { RecordingHandle, Labrecorder } from '../../impl/LabrecorderAdapter.js'
+import {
+    RecordingHandle,
+    RecordingInfo,
+    Labrecorder,
+} from '../../impl/LabrecorderAdapter.js'
 
 export default class FakeLabrecorder implements Labrecorder {
     public static constructorCalls: string[] = []
@@ -6,6 +10,7 @@ export default class FakeLabrecorder implements Labrecorder {
     public static createRecordingCalls: {
         filename: string
         watchFor: string[]
+        info?: RecordingInfo
     }[] = []
 
     public static stopRecordingCalls: RecordingHandle[] = []
@@ -15,8 +20,12 @@ export default class FakeLabrecorder implements Labrecorder {
         FakeLabrecorder.constructorCalls.push(labrecorderPath)
     }
 
-    public createRecording(filename: string, watchFor: string[]) {
-        FakeLabrecorder.createRecordingCalls.push({ filename, watchFor })
+    public createRecording(
+        filename: string,
+        watchFor: string[],
+        info?: RecordingInfo
+    ) {
+        FakeLabrecorder.createRecordingCalls.push({ filename, watchFor, info })
         return {} as RecordingHandle
     }
 
