@@ -14,10 +14,10 @@ import {
     StopBleScanOptions,
     StartUsbOptions,
     StartBleObserverOptions,
-    BluetoothOptions,
-    DiscoverBluetoothAddressesOptions,
-    StartBluetoothOptions,
-    WriteBluetoothOptions,
+    RfcommOptions,
+    DiscoverRfcommAddressesOptions,
+    StartRfcommOptions,
+    WriteRfcommOptions,
 } from '../../impl/LibndxAdapter.js'
 
 export default class FakeLibndx implements Libndx {
@@ -48,14 +48,14 @@ export default class FakeLibndx implements Libndx {
     public static numCallsToDiscoverUsbSerialNumbers = 0
     public static fakeUsbSerialNumbers: string[] = []
 
-    public static callsToDiscoverBluetoothAddresses: DiscoverBluetoothAddressesOptions[] =
+    public static callsToDiscoverRfcommAddresses: DiscoverRfcommAddressesOptions[] =
         []
-    public static fakeBluetoothAddresses: string[] = []
+    public static fakeRfcommAddresses: string[] = []
 
-    public static callsToCreateBluetoothBackend: BluetoothOptions[] = []
-    public static callsToStartBluetoothBackend: StartBluetoothOptions[] = []
-    public static callsToWriteBluetoothBackend: WriteBluetoothOptions[] = []
-    public static callsToStopBluetoothBackend: BluetoothOptions[] = []
+    public static callsToCreateRfcommBackend: RfcommOptions[] = []
+    public static callsToStartRfcommBackend: StartRfcommOptions[] = []
+    public static callsToWriteRfcommBackend: WriteRfcommOptions[] = []
+    public static callsToStopRfcommBackend: RfcommOptions[] = []
 
     public static fakeResult: NativeResult = { status: 200 }
 
@@ -159,34 +159,32 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
-    public discoverBluetoothAddresses(
-        options: DiscoverBluetoothAddressesOptions
-    ) {
-        FakeLibndx.callsToDiscoverBluetoothAddresses.push(options)
+    public discoverRfcommAddresses(options: DiscoverRfcommAddressesOptions) {
+        FakeLibndx.callsToDiscoverRfcommAddresses.push(options)
 
         return {
             ...FakeLibndx.fakeResult,
-            addresses: FakeLibndx.fakeBluetoothAddresses,
+            addresses: FakeLibndx.fakeRfcommAddresses,
         }
     }
 
-    public createBluetoothBackend(options: BluetoothOptions) {
-        FakeLibndx.callsToCreateBluetoothBackend.push(options)
+    public createRfcommBackend(options: RfcommOptions) {
+        FakeLibndx.callsToCreateRfcommBackend.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public startBluetoothBackend(options: StartBluetoothOptions) {
-        FakeLibndx.callsToStartBluetoothBackend.push(options)
+    public startRfcommBackend(options: StartRfcommOptions) {
+        FakeLibndx.callsToStartRfcommBackend.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public writeBluetoothBackend(options: WriteBluetoothOptions) {
-        FakeLibndx.callsToWriteBluetoothBackend.push(options)
+    public writeRfcommBackend(options: WriteRfcommOptions) {
+        FakeLibndx.callsToWriteRfcommBackend.push(options)
         return FakeLibndx.fakeResult
     }
 
-    public stopBluetoothBackend(options: BluetoothOptions) {
-        FakeLibndx.callsToStopBluetoothBackend.push(options)
+    public stopRfcommBackend(options: RfcommOptions) {
+        FakeLibndx.callsToStopRfcommBackend.push(options)
         return FakeLibndx.fakeResult
     }
 
@@ -211,11 +209,11 @@ export default class FakeLibndx implements Libndx {
         FakeLibndx.callsToStartUsbBackend = []
         FakeLibndx.callsToWriteUsbBackend = []
         FakeLibndx.callsToStopUsbBackend = []
-        FakeLibndx.callsToDiscoverBluetoothAddresses = []
-        FakeLibndx.fakeBluetoothAddresses = []
-        FakeLibndx.callsToCreateBluetoothBackend = []
-        FakeLibndx.callsToStartBluetoothBackend = []
-        FakeLibndx.callsToWriteBluetoothBackend = []
-        FakeLibndx.callsToStopBluetoothBackend = []
+        FakeLibndx.callsToDiscoverRfcommAddresses = []
+        FakeLibndx.fakeRfcommAddresses = []
+        FakeLibndx.callsToCreateRfcommBackend = []
+        FakeLibndx.callsToStartRfcommBackend = []
+        FakeLibndx.callsToWriteRfcommBackend = []
+        FakeLibndx.callsToStopRfcommBackend = []
     }
 }

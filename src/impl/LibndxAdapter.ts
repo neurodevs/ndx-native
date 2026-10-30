@@ -33,9 +33,9 @@ export default class LibndxAdapter implements Libndx {
         RegisteredCallbackPointer
     >()
 
-    private readonly runningBluetoothAddresses = new Set<string>()
-    private readonly bluetoothEventPumpMs = 10
-    private bluetoothEventPump?: ReturnType<typeof setInterval>
+    private readonly runningRfcommAddresses = new Set<string>()
+    private readonly rfcommEventPumpMs = 10
+    private rfcommEventPump?: ReturnType<typeof setInterval>
 
     private libndxPath: string
     private bindings!: LibndxBindings
@@ -134,7 +134,7 @@ export default class LibndxAdapter implements Libndx {
             (args: [string, number, RegisteredCallbackPointer]) =>
                 f(args[0], args[1], args[2])
 
-        const wrapWriteBluetoothBackend =
+        const wrapWriteRfcommBackend =
             (f: (a: string, b: Buffer, c: number) => string) =>
             (args: [string, Buffer, number]) =>
                 f(args[0], args[1], args[2])
@@ -213,28 +213,26 @@ export default class LibndxAdapter implements Libndx {
             stop_usb_backend: wrap1(
                 lib.func('str stop_usb_backend(str serial)')
             ),
-            discover_bluetooth_addresses: wrap1(
-                lib.func('str discover_bluetooth_addresses(str name_prefix)')
+            discover_rfcomm_addresses: wrap1(
+                lib.func('str discover_rfcomm_addresses(str name_prefix)')
             ),
-            create_bluetooth_backend: wrap1(
-                lib.func('str create_bluetooth_backend(str config)')
+            create_rfcomm_backend: wrap1(
+                lib.func('str create_rfcomm_backend(str config)')
             ),
-            start_bluetooth_backend: wrapStrAndCallback(
+            start_rfcomm_backend: wrapStrAndCallback(
                 lib.func(
-                    'str start_bluetooth_backend(str address, OnDataFn *on_data)'
+                    'str start_rfcomm_backend(str address, OnDataFn *on_data)'
                 )
             ),
-            write_bluetooth_backend: wrapWriteBluetoothBackend(
+            write_rfcomm_backend: wrapWriteRfcommBackend(
                 lib.func(
-                    'str write_bluetooth_backend(str address, const uint8 *data, uint64 length)'
+                    'str write_rfcomm_backend(str address, const uint8 *data, uint64 length)'
                 )
             ),
-            stop_bluetooth_backend: wrap1(
-                lib.func('str stop_bluetooth_backend(str address)')
+            stop_rfcomm_backend: wrap1(
+                lib.func('str stop_rfcomm_backend(str address)')
             ),
-            pump_bluetooth_events: wrap0(
-                lib.func('str pump_bluetooth_events()')
-            ),
+            pump_rfcomm_events: wrap0(lib.func('str pump_rfcomm_events()')),
         }
     }
 
@@ -533,25 +531,21 @@ export default class LibndxAdapter implements Libndx {
         return JSON.parse(this.bindings.stop_usb_backend([serialNumber]))
     }
 
-    public discoverBluetoothAddresses(
-        options: DiscoverBluetoothAddressesOptions
-    ) {
+    public discoverRfcommAddresses(options: DiscoverRfcommAddressesOptions) {
         const { namePrefix } = options
 
-        return JSON.parse(
-            this.bindings.discover_bluetooth_addresses([namePrefix])
-        )
+        return JSON.parse(this.bindings.discover_rfcomm_addresses([namePrefix]))
     }
 
-    public createBluetoothBackend(options: BluetoothOptions) {
+    public createRfcommBackend(options: RfcommOptions) {
         const { address, port } = options
 
         const configJson = JSON.stringify({ address, port })
 
-        return JSON.parse(this.bindings.create_bluetooth_backend([configJson]))
+        return JSON.parse(this.bindings.create_rfcomm_backend([configJson]))
     }
 
-    public startBluetoothBackend(options: StartBluetoothOptions) {
+    public startRfcommBackend(options: StartRfcommOptions) {
         const { address, onData } = options
 
         const registeredOnData = LibndxAdapter.registerOnData(
@@ -562,55 +556,50 @@ export default class LibndxAdapter implements Libndx {
         this.registeredCallbacks.push(registeredOnData)
 
         const result = JSON.parse(
-            this.bindings.start_bluetooth_backend([address, registeredOnData])
+            this.bindings.start_rfcomm_backend([address, registeredOnData])
         )
 
         if (result.status === 200) {
-            this.runningBluetoothAddresses.add(address)
-            this.startPumpingBluetoothEvents()
+            this.runningRfcommAddresses.add(address)
+            this.startPumpingRfcommEvents()
         }
 
         return result
     }
 
-    private startPumpingBluetoothEvents() {
-        this.bluetoothEventPump ??= LibndxAdapter.setInterval(
-            () => this.bindings.pump_bluetooth_events(),
-            this.bluetoothEventPumpMs
+    private startPumpingRfcommEvents() {
+        this.rfcommEventPump ??= LibndxAdapter.setInterval(
+            () => this.bindings.pump_rfcomm_events(),
+            this.rfcommEventPumpMs
         )
     }
 
-    public writeBluetoothBackend(options: WriteBluetoothOptions) {
+    public writeRfcommBackend(options: WriteRfcommOptions) {
         const { address, data } = options
 
         return JSON.parse(
-            this.bindings.write_bluetooth_backend([address, data, data.length])
+            this.bindings.write_rfcomm_backend([address, data, data.length])
         )
     }
 
-    public stopBluetoothBackend(options: BluetoothOptions) {
+    public stopRfcommBackend(options: RfcommOptions) {
         const { address } = options
 
-        const result = JSON.parse(
-            this.bindings.stop_bluetooth_backend([address])
-        )
+        const result = JSON.parse(this.bindings.stop_rfcomm_backend([address]))
 
-        this.runningBluetoothAddresses.delete(address)
-        this.stopPumpingBluetoothEventsIfIdle()
+        this.runningRfcommAddresses.delete(address)
+        this.stopPumpingRfcommEventsIfIdle()
 
         return result
     }
 
-    private stopPumpingBluetoothEventsIfIdle() {
-        if (
-            this.runningBluetoothAddresses.size > 0 ||
-            !this.bluetoothEventPump
-        ) {
+    private stopPumpingRfcommEventsIfIdle() {
+        if (this.runningRfcommAddresses.size > 0 || !this.rfcommEventPump) {
             return
         }
 
-        LibndxAdapter.clearInterval(this.bluetoothEventPump)
-        delete this.bluetoothEventPump
+        LibndxAdapter.clearInterval(this.rfcommEventPump)
+        delete this.rfcommEventPump
     }
 
     private static registerOnAdvertisement(
@@ -764,13 +753,13 @@ export interface Libndx {
     writeUsbBackend(options: WriteUsbOptions): NativeResult
     stopUsbBackend(options: UsbOptions): NativeResult
 
-    discoverBluetoothAddresses(
-        options: DiscoverBluetoothAddressesOptions
+    discoverRfcommAddresses(
+        options: DiscoverRfcommAddressesOptions
     ): NativeResult & { addresses?: string[] }
-    createBluetoothBackend(options: BluetoothOptions): NativeResult
-    startBluetoothBackend(options: StartBluetoothOptions): NativeResult
-    writeBluetoothBackend(options: WriteBluetoothOptions): NativeResult
-    stopBluetoothBackend(options: BluetoothOptions): NativeResult
+    createRfcommBackend(options: RfcommOptions): NativeResult
+    startRfcommBackend(options: StartRfcommOptions): NativeResult
+    writeRfcommBackend(options: WriteRfcommOptions): NativeResult
+    stopRfcommBackend(options: RfcommOptions): NativeResult
 }
 
 export type LibndxConstructor = new (options?: LibndxAdapterOptions) => Libndx
@@ -876,20 +865,20 @@ export interface WriteUsbOptions extends UsbOptions {
     value: string
 }
 
-export interface DiscoverBluetoothAddressesOptions {
+export interface DiscoverRfcommAddressesOptions {
     namePrefix: string
 }
 
-export interface BluetoothOptions {
+export interface RfcommOptions {
     address: string
     port?: number
 }
 
-export interface StartBluetoothOptions extends BluetoothOptions {
+export interface StartRfcommOptions extends RfcommOptions {
     onData: OnDataCallback
 }
 
-export interface WriteBluetoothOptions extends BluetoothOptions {
+export interface WriteRfcommOptions extends RfcommOptions {
     data: Buffer
 }
 
@@ -932,12 +921,12 @@ export interface LibndxBindings {
     write_usb_backend(args: [string, string]): string
     stop_usb_backend(args: [string]): string
 
-    discover_bluetooth_addresses(args: [string]): string
-    create_bluetooth_backend(args: [string]): string
-    start_bluetooth_backend(args: [string, RegisteredCallbackPointer]): string
-    write_bluetooth_backend(args: [string, Buffer, number]): string
-    stop_bluetooth_backend(args: [string]): string
-    pump_bluetooth_events(): string
+    discover_rfcomm_addresses(args: [string]): string
+    create_rfcomm_backend(args: [string]): string
+    start_rfcomm_backend(args: [string, RegisteredCallbackPointer]): string
+    write_rfcomm_backend(args: [string, Buffer, number]): string
+    stop_rfcomm_backend(args: [string]): string
+    pump_rfcomm_events(): string
 }
 
 export interface NativePeripheral {

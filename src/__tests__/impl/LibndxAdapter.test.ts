@@ -37,9 +37,9 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static readonly usbSerialNumber = this.generateId()
     private static readonly usbValueToWrite = this.generateId()
 
-    private static readonly bluetoothAddress = this.generateId()
-    private static readonly bluetoothNamePrefix = this.generateId()
-    private static readonly bluetoothDataToWrite = Buffer.from([
+    private static readonly rfcommAddress = this.generateId()
+    private static readonly rfcommNamePrefix = this.generateId()
+    private static readonly rfcommDataToWrite = Buffer.from([
         0x02, 0x23, 0x00, 0x00, 0x03,
     ])
 
@@ -145,22 +145,21 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static readonly callsToWriteUsb: string[][] = []
     private static readonly callsToStopUsb: string[][] = []
 
-    private static fakeDiscoverBluetoothResult: Record<string, unknown> = {
+    private static fakeDiscoverRfcommResult: Record<string, unknown> = {
         status: 200,
         addresses: [],
     }
 
-    private static readonly callsToDiscoverBluetooth: string[][] = []
-    private static readonly callsToCreateBluetooth: string[][] = []
-    private static readonly callsToStartBluetooth: [
+    private static readonly callsToDiscoverRfcomm: string[][] = []
+    private static readonly callsToCreateRfcomm: string[][] = []
+    private static readonly callsToStartRfcomm: [
         string,
         RegisteredCallbackPointer,
     ][] = []
-    private static readonly callsToWriteBluetooth: [string, Buffer, number][] =
-        []
-    private static readonly callsToStopBluetooth: string[][] = []
-    private static numCallsToPumpBluetoothEvents = 0
-    private static fakeStartBluetoothResult: Record<string, unknown> = {
+    private static readonly callsToWriteRfcomm: [string, Buffer, number][] = []
+    private static readonly callsToStopRfcomm: string[][] = []
+    private static numCallsToPumpRfcommEvents = 0
+    private static fakeStartRfcommResult: Record<string, unknown> = {
         status: 200,
     }
 
@@ -238,12 +237,12 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 'str start_usb_backend(str serial, OnDataFn *on_data)',
                 'str write_usb_backend(str serial, str value)',
                 'str stop_usb_backend(str serial)',
-                'str discover_bluetooth_addresses(str name_prefix)',
-                'str create_bluetooth_backend(str config)',
-                'str start_bluetooth_backend(str address, OnDataFn *on_data)',
-                'str write_bluetooth_backend(str address, const uint8 *data, uint64 length)',
-                'str stop_bluetooth_backend(str address)',
-                'str pump_bluetooth_events()',
+                'str discover_rfcomm_addresses(str name_prefix)',
+                'str create_rfcomm_backend(str config)',
+                'str start_rfcomm_backend(str address, OnDataFn *on_data)',
+                'str write_rfcomm_backend(str address, const uint8 *data, uint64 length)',
+                'str stop_rfcomm_backend(str address)',
+                'str pump_rfcomm_events()',
             ],
             'Did not register expected koffi func signatures!'
         )
@@ -1092,103 +1091,103 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async discoverBluetoothAddressesPassesNamePrefixToBinding() {
-        this.instance.discoverBluetoothAddresses({
-            namePrefix: this.bluetoothNamePrefix,
+    protected static async discoverRfcommAddressesPassesNamePrefixToBinding() {
+        this.instance.discoverRfcommAddresses({
+            namePrefix: this.rfcommNamePrefix,
         })
 
         assert.isEqualDeep(
-            this.callsToDiscoverBluetooth[0],
-            [this.bluetoothNamePrefix],
-            'discoverBluetoothAddresses did not call binding with expected args!'
+            this.callsToDiscoverRfcomm[0],
+            [this.rfcommNamePrefix],
+            'discoverRfcommAddresses did not call binding with expected args!'
         )
     }
 
     @test()
-    protected static async discoverBluetoothAddressesReturnsAddressesFromBinding() {
-        this.fakeDiscoverBluetoothResult = {
+    protected static async discoverRfcommAddressesReturnsAddressesFromBinding() {
+        this.fakeDiscoverRfcommResult = {
             status: 200,
             addresses: ['a0-e6-f8-a5-60-bf', 'a0-e6-f8-a5-69-9a'],
         }
 
         assert.isEqualDeep(
-            this.instance.discoverBluetoothAddresses({
-                namePrefix: this.bluetoothNamePrefix,
+            this.instance.discoverRfcommAddresses({
+                namePrefix: this.rfcommNamePrefix,
             }),
             {
                 status: 200,
                 addresses: ['a0-e6-f8-a5-60-bf', 'a0-e6-f8-a5-69-9a'],
             },
-            'discoverBluetoothAddresses did not return addresses from binding!'
+            'discoverRfcommAddresses did not return addresses from binding!'
         )
     }
 
     @test()
-    protected static async discoverBluetoothAddressesReturnsErrorFromBinding() {
-        this.fakeDiscoverBluetoothResult = { status: 500, error: 'powered off' }
+    protected static async discoverRfcommAddressesReturnsErrorFromBinding() {
+        this.fakeDiscoverRfcommResult = { status: 500, error: 'powered off' }
 
-        const { status, error } = this.instance.discoverBluetoothAddresses({
-            namePrefix: this.bluetoothNamePrefix,
+        const { status, error } = this.instance.discoverRfcommAddresses({
+            namePrefix: this.rfcommNamePrefix,
         })
 
         assert.isEqualDeep(
             { status, error },
             { status: 500, error: 'powered off' },
-            'discoverBluetoothAddresses did not return error from binding!'
+            'discoverRfcommAddresses did not return error from binding!'
         )
     }
 
     @test()
-    protected static async createBluetoothBackendCallsBindingWithExpectedArgs() {
-        this.createBluetoothBackend()
+    protected static async createRfcommBackendCallsBindingWithExpectedArgs() {
+        this.createRfcommBackend()
 
         assert.isEqualDeep(
-            JSON.parse(this.callsToCreateBluetooth[0][0]),
-            { address: this.bluetoothAddress },
-            'createBluetoothBackend did not call binding with expected args!'
+            JSON.parse(this.callsToCreateRfcomm[0][0]),
+            { address: this.rfcommAddress },
+            'createRfcommBackend did not call binding with expected args!'
         )
     }
 
     @test()
-    protected static async createBluetoothBackendPassesPort() {
-        this.instance.createBluetoothBackend({
-            address: this.bluetoothAddress,
+    protected static async createRfcommBackendPassesPort() {
+        this.instance.createRfcommBackend({
+            address: this.rfcommAddress,
             port: 3,
         })
 
         assert.isEqualDeep(
-            JSON.parse(this.callsToCreateBluetooth[0][0]),
-            { address: this.bluetoothAddress, port: 3 },
-            'createBluetoothBackend did not pass port!'
+            JSON.parse(this.callsToCreateRfcomm[0][0]),
+            { address: this.rfcommAddress, port: 3 },
+            'createRfcommBackend did not pass port!'
         )
     }
 
     @test()
-    protected static async createBluetoothBackendReturnsJson() {
+    protected static async createRfcommBackendReturnsJson() {
         assert.isEqualDeep(
-            this.createBluetoothBackend(),
+            this.createRfcommBackend(),
             this.successfulResult,
-            'createBluetoothBackend did not return a JSON string!'
+            'createRfcommBackend did not return a JSON string!'
         )
     }
 
     @test()
-    protected static async startBluetoothBackendCallsBindingWithExpectedArgs() {
-        this.startBluetoothBackend()
+    protected static async startRfcommBackendCallsBindingWithExpectedArgs() {
+        this.startRfcommBackend()
 
         assert.isEqual(
-            this.callsToStartBluetooth[0][0],
-            this.bluetoothAddress,
-            'startBluetoothBackend did not call binding with expected args!'
+            this.callsToStartRfcomm[0][0],
+            this.rfcommAddress,
+            'startRfcommBackend did not call binding with expected args!'
         )
     }
 
     @test()
-    protected static async startBluetoothBackendDecodesRawPointerBeforeInvokingOnData() {
-        this.startBluetoothBackend()
+    protected static async startRfcommBackendDecodesRawPointerBeforeInvokingOnData() {
+        this.startRfcommBackend()
 
         const registeredOnData = this
-            .callsToStartBluetooth[0][1] as unknown as OnDataCallback
+            .callsToStartRfcomm[0][1] as unknown as OnDataCallback
 
         const fakePointer = 49611948672n
         registeredOnData(fakePointer, 3, 123.456)
@@ -1211,79 +1210,79 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     }
 
     @test()
-    protected static async startBluetoothBackendRetainsOnDataCallbackToPreventGc() {
-        this.startBluetoothBackend()
+    protected static async startRfcommBackendRetainsOnDataCallbackToPreventGc() {
+        this.startRfcommBackend()
 
-        const registeredOnData = this.callsToStartBluetooth[0][1]
+        const registeredOnData = this.callsToStartRfcomm[0][1]
 
         assert.isTrue(
             this.instance.getRegisteredCallbacks().includes(registeredOnData),
-            'startBluetoothBackend did not retain the registered onData callback!'
+            'startRfcommBackend did not retain the registered onData callback!'
         )
     }
 
     @test()
-    protected static async startBluetoothBackendReturnsJson() {
+    protected static async startRfcommBackendReturnsJson() {
         assert.isEqualDeep(
-            this.startBluetoothBackend(),
+            this.startRfcommBackend(),
             this.successfulResult,
-            'startBluetoothBackend did not return a JSON string!'
+            'startRfcommBackend did not return a JSON string!'
         )
     }
 
     @test()
-    protected static async writeBluetoothBackendPassesBytesAndLengthToBinding() {
-        this.writeBluetoothBackend()
+    protected static async writeRfcommBackendPassesBytesAndLengthToBinding() {
+        this.writeRfcommBackend()
 
         assert.isEqualDeep(
-            this.callsToWriteBluetooth[0],
+            this.callsToWriteRfcomm[0],
             [
-                this.bluetoothAddress,
-                this.bluetoothDataToWrite,
-                this.bluetoothDataToWrite.length,
+                this.rfcommAddress,
+                this.rfcommDataToWrite,
+                this.rfcommDataToWrite.length,
             ],
-            'writeBluetoothBackend did not call binding with expected args!'
+            'writeRfcommBackend did not call binding with expected args!'
         )
     }
 
     @test()
-    protected static async writeBluetoothBackendReturnsJson() {
+    protected static async writeRfcommBackendReturnsJson() {
         assert.isEqualDeep(
-            this.writeBluetoothBackend(),
+            this.writeRfcommBackend(),
             this.successfulResult,
-            'writeBluetoothBackend did not return a JSON string!'
+            'writeRfcommBackend did not return a JSON string!'
         )
     }
 
     @test()
-    protected static async stopBluetoothBackendCallsBindingWithExpectedArgs() {
-        this.stopBluetoothBackend()
+    protected static async stopRfcommBackendCallsBindingWithExpectedArgs() {
+        this.stopRfcommBackend()
 
         assert.isEqualDeep(
-            this.callsToStopBluetooth[0],
-            [this.bluetoothAddress],
-            'stopBluetoothBackend did not call binding with expected args!'
+            this.callsToStopRfcomm[0],
+            [this.rfcommAddress],
+            'stopRfcommBackend did not call binding with expected args!'
         )
     }
 
     @test()
-    protected static async startBluetoothBackendPumpsBluetoothEventsEveryTenMs() {
-        this.startBluetoothBackend()
+    protected static async startRfcommBackendPumpsRfcommEventsEveryTenMs() {
+        this.startRfcommBackend()
 
         const { callback, ms } = this.callsToSetInterval[0] ?? {}
         callback?.()
 
         assert.isEqualDeep(
-            { ms, numCallsToPump: this.numCallsToPumpBluetoothEvents },
+            { ms, numCallsToPump: this.numCallsToPumpRfcommEvents },
             { ms: 10, numCallsToPump: 1 },
-            'Did not pump bluetooth events every 10ms! IOBluetooth only delivers incoming data on the main run loop, which node never runs.'
+            'Did not pump rfcomm events every 10ms! IOBluetooth only delivers incoming data on the main run loop, which node never runs.'
         )
     }
 
     @test()
-    protected static async pumpsOnceForSeveralBluetoothBackends() {
-        this.startBluetoothBackend()
-        this.instance.startBluetoothBackend({
+    protected static async pumpsOnceForSeveralRfcommBackends() {
+        this.startRfcommBackend()
+        this.instance.startRfcommBackend({
             address: this.generateId(),
             onData: this.usbOnDataCallback,
         })
@@ -1291,37 +1290,37 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         assert.isLength(
             this.callsToSetInterval,
             1,
-            'Should pump bluetooth events only once for several backends!'
+            'Should pump rfcomm events only once for several backends!'
         )
     }
 
     @test()
-    protected static async doesNotPumpWhenBluetoothBackendFailsToStart() {
-        this.fakeStartBluetoothResult = { status: 500, error: 'timeout' }
+    protected static async doesNotPumpWhenRfcommBackendFailsToStart() {
+        this.fakeStartRfcommResult = { status: 500, error: 'timeout' }
 
-        this.startBluetoothBackend()
+        this.startRfcommBackend()
 
         assert.isLength(
             this.callsToSetInterval,
             0,
-            'Should not pump bluetooth events for a backend that failed to start!'
+            'Should not pump rfcomm events for a backend that failed to start!'
         )
     }
 
     @test()
-    protected static async stopsPumpingOnceLastBluetoothBackendStops() {
+    protected static async stopsPumpingOnceLastRfcommBackendStops() {
         const otherAddress = this.generateId()
 
-        this.startBluetoothBackend()
-        this.instance.startBluetoothBackend({
+        this.startRfcommBackend()
+        this.instance.startRfcommBackend({
             address: otherAddress,
             onData: this.usbOnDataCallback,
         })
 
-        this.stopBluetoothBackend()
+        this.stopRfcommBackend()
         const numClearsWhileOneRuns = this.callsToClearInterval.length
 
-        this.instance.stopBluetoothBackend({ address: otherAddress })
+        this.instance.stopRfcommBackend({ address: otherAddress })
 
         assert.isEqualDeep(
             {
@@ -1329,16 +1328,16 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 cleared: this.callsToClearInterval,
             },
             { numClearsWhileOneRuns: 0, cleared: [this.fakeInterval] },
-            'Did not stop pumping once the last bluetooth backend stopped!'
+            'Did not stop pumping once the last rfcomm backend stopped!'
         )
     }
 
     @test()
-    protected static async stopBluetoothBackendReturnsJson() {
+    protected static async stopRfcommBackendReturnsJson() {
         assert.isEqualDeep(
-            this.stopBluetoothBackend(),
+            this.stopRfcommBackend(),
             this.successfulResult,
-            'stopBluetoothBackend did not return a JSON string!'
+            'stopRfcommBackend did not return a JSON string!'
         )
     }
 
@@ -1463,29 +1462,29 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
     }
 
-    private static createBluetoothBackend() {
-        return this.instance.createBluetoothBackend({
-            address: this.bluetoothAddress,
+    private static createRfcommBackend() {
+        return this.instance.createRfcommBackend({
+            address: this.rfcommAddress,
         })
     }
 
-    private static startBluetoothBackend() {
-        return this.instance.startBluetoothBackend({
-            address: this.bluetoothAddress,
+    private static startRfcommBackend() {
+        return this.instance.startRfcommBackend({
+            address: this.rfcommAddress,
             onData: this.usbOnDataCallback,
         })
     }
 
-    private static writeBluetoothBackend() {
-        return this.instance.writeBluetoothBackend({
-            address: this.bluetoothAddress,
-            data: this.bluetoothDataToWrite,
+    private static writeRfcommBackend() {
+        return this.instance.writeRfcommBackend({
+            address: this.rfcommAddress,
+            data: this.rfcommDataToWrite,
         })
     }
 
-    private static stopBluetoothBackend() {
-        return this.instance.stopBluetoothBackend({
-            address: this.bluetoothAddress,
+    private static stopRfcommBackend() {
+        return this.instance.stopRfcommBackend({
+            address: this.rfcommAddress,
         })
     }
 
@@ -1582,28 +1581,28 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 this.callsToStopUsb.push(args)
                 return JSON.stringify(this.successfulResult)
             },
-            discover_bluetooth_addresses: (args) => {
-                this.callsToDiscoverBluetooth.push(args)
-                return JSON.stringify(this.fakeDiscoverBluetoothResult)
+            discover_rfcomm_addresses: (args) => {
+                this.callsToDiscoverRfcomm.push(args)
+                return JSON.stringify(this.fakeDiscoverRfcommResult)
             },
-            create_bluetooth_backend: (args) => {
-                this.callsToCreateBluetooth.push(args)
+            create_rfcomm_backend: (args) => {
+                this.callsToCreateRfcomm.push(args)
                 return JSON.stringify(this.successfulResult)
             },
-            start_bluetooth_backend: (args: any) => {
-                this.callsToStartBluetooth.push(args)
-                return JSON.stringify(this.fakeStartBluetoothResult)
+            start_rfcomm_backend: (args: any) => {
+                this.callsToStartRfcomm.push(args)
+                return JSON.stringify(this.fakeStartRfcommResult)
             },
-            write_bluetooth_backend: (args) => {
-                this.callsToWriteBluetooth.push(args)
+            write_rfcomm_backend: (args) => {
+                this.callsToWriteRfcomm.push(args)
                 return JSON.stringify(this.successfulResult)
             },
-            stop_bluetooth_backend: (args) => {
-                this.callsToStopBluetooth.push(args)
+            stop_rfcomm_backend: (args) => {
+                this.callsToStopRfcomm.push(args)
                 return JSON.stringify(this.successfulResult)
             },
-            pump_bluetooth_events: () => {
-                this.numCallsToPumpBluetoothEvents++
+            pump_rfcomm_events: () => {
+                this.numCallsToPumpRfcommEvents++
                 return JSON.stringify(this.successfulResult)
             },
         }
@@ -1626,13 +1625,13 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         this.callsToStartUsb.length = 0
         this.callsToWriteUsb.length = 0
         this.callsToStopUsb.length = 0
-        this.callsToDiscoverBluetooth.length = 0
-        this.callsToCreateBluetooth.length = 0
-        this.callsToStartBluetooth.length = 0
-        this.callsToWriteBluetooth.length = 0
-        this.callsToStopBluetooth.length = 0
-        this.numCallsToPumpBluetoothEvents = 0
-        this.fakeStartBluetoothResult = { status: 200 }
+        this.callsToDiscoverRfcomm.length = 0
+        this.callsToCreateRfcomm.length = 0
+        this.callsToStartRfcomm.length = 0
+        this.callsToWriteRfcomm.length = 0
+        this.callsToStopRfcomm.length = 0
+        this.numCallsToPumpRfcommEvents = 0
+        this.fakeStartRfcommResult = { status: 200 }
     }
 
     private static setFakeIntervals() {
