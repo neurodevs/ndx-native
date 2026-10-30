@@ -14,6 +14,10 @@ import {
     StopBleScanOptions,
     StartUsbOptions,
     StartBleObserverOptions,
+    BluetoothOptions,
+    DiscoverBluetoothAddressesOptions,
+    StartBluetoothOptions,
+    WriteBluetoothOptions,
 } from '../../impl/LibndxAdapter.js'
 
 export default class FakeLibndx implements Libndx {
@@ -43,6 +47,15 @@ export default class FakeLibndx implements Libndx {
 
     public static numCallsToDiscoverUsbSerialNumbers = 0
     public static fakeUsbSerialNumbers: string[] = []
+
+    public static callsToDiscoverBluetoothAddresses: DiscoverBluetoothAddressesOptions[] =
+        []
+    public static fakeBluetoothAddresses: string[] = []
+
+    public static callsToCreateBluetoothBackend: BluetoothOptions[] = []
+    public static callsToStartBluetoothBackend: StartBluetoothOptions[] = []
+    public static callsToWriteBluetoothBackend: WriteBluetoothOptions[] = []
+    public static callsToStopBluetoothBackend: BluetoothOptions[] = []
 
     public static fakeResult: NativeResult = { status: 200 }
 
@@ -146,6 +159,37 @@ export default class FakeLibndx implements Libndx {
         return FakeLibndx.fakeResult
     }
 
+    public discoverBluetoothAddresses(
+        options: DiscoverBluetoothAddressesOptions
+    ) {
+        FakeLibndx.callsToDiscoverBluetoothAddresses.push(options)
+
+        return {
+            ...FakeLibndx.fakeResult,
+            addresses: FakeLibndx.fakeBluetoothAddresses,
+        }
+    }
+
+    public createBluetoothBackend(options: BluetoothOptions) {
+        FakeLibndx.callsToCreateBluetoothBackend.push(options)
+        return FakeLibndx.fakeResult
+    }
+
+    public startBluetoothBackend(options: StartBluetoothOptions) {
+        FakeLibndx.callsToStartBluetoothBackend.push(options)
+        return FakeLibndx.fakeResult
+    }
+
+    public writeBluetoothBackend(options: WriteBluetoothOptions) {
+        FakeLibndx.callsToWriteBluetoothBackend.push(options)
+        return FakeLibndx.fakeResult
+    }
+
+    public stopBluetoothBackend(options: BluetoothOptions) {
+        FakeLibndx.callsToStopBluetoothBackend.push(options)
+        return FakeLibndx.fakeResult
+    }
+
     public static resetTestDouble() {
         FakeLibndx.callsToConstructor = []
         FakeLibndx.callsToDiscoverBleUuid = []
@@ -167,5 +211,11 @@ export default class FakeLibndx implements Libndx {
         FakeLibndx.callsToStartUsbBackend = []
         FakeLibndx.callsToWriteUsbBackend = []
         FakeLibndx.callsToStopUsbBackend = []
+        FakeLibndx.callsToDiscoverBluetoothAddresses = []
+        FakeLibndx.fakeBluetoothAddresses = []
+        FakeLibndx.callsToCreateBluetoothBackend = []
+        FakeLibndx.callsToStartBluetoothBackend = []
+        FakeLibndx.callsToWriteBluetoothBackend = []
+        FakeLibndx.callsToStopBluetoothBackend = []
     }
 }

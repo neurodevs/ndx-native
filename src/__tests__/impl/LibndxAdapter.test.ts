@@ -37,6 +37,12 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static readonly usbSerialNumber = this.generateId()
     private static readonly usbValueToWrite = this.generateId()
 
+    private static readonly bluetoothAddress = this.generateId()
+    private static readonly bluetoothNamePrefix = this.generateId()
+    private static readonly bluetoothDataToWrite = Buffer.from([
+        0x02, 0x23, 0x00, 0x00, 0x03,
+    ])
+
     private static readonly charCallbacks = [
         {
             charUuid: this.generateId(),
@@ -139,6 +145,32 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
     private static readonly callsToWriteUsb: string[][] = []
     private static readonly callsToStopUsb: string[][] = []
 
+    private static fakeDiscoverBluetoothResult: Record<string, unknown> = {
+        status: 200,
+        addresses: [],
+    }
+
+    private static readonly callsToDiscoverBluetooth: string[][] = []
+    private static readonly callsToCreateBluetooth: string[][] = []
+    private static readonly callsToStartBluetooth: [
+        string,
+        RegisteredCallbackPointer,
+    ][] = []
+    private static readonly callsToWriteBluetooth: [string, Buffer, number][] =
+        []
+    private static readonly callsToStopBluetooth: string[][] = []
+    private static numCallsToPumpBluetoothEvents = 0
+    private static fakeStartBluetoothResult: Record<string, unknown> = {
+        status: 200,
+    }
+
+    private static readonly callsToSetInterval: {
+        callback: () => void
+        ms?: number
+    }[] = []
+    private static readonly callsToClearInterval: unknown[] = []
+    private static readonly fakeInterval = {}
+
     protected static async beforeEach() {
         await super.beforeEach()
 
@@ -146,6 +178,7 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         this.fakeBindings = this.FakeBindings()
         this.resetCallsToFakeBindings()
         this.clearAndFakeFfi()
+        this.setFakeIntervals()
 
         LibndxAdapter.Class = SpyLibndx
 
@@ -205,6 +238,12 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 'str start_usb_backend(str serial, OnDataFn *on_data)',
                 'str write_usb_backend(str serial, str value)',
                 'str stop_usb_backend(str serial)',
+                'str discover_bluetooth_addresses(str name_prefix)',
+                'str create_bluetooth_backend(str config)',
+                'str start_bluetooth_backend(str address, OnDataFn *on_data)',
+                'str write_bluetooth_backend(str address, const uint8 *data, uint64 length)',
+                'str stop_bluetooth_backend(str address)',
+                'str pump_bluetooth_events()',
             ],
             'Did not register expected koffi func signatures!'
         )
@@ -1052,6 +1091,257 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         )
     }
 
+    @test()
+    protected static async discoverBluetoothAddressesPassesNamePrefixToBinding() {
+        this.instance.discoverBluetoothAddresses({
+            namePrefix: this.bluetoothNamePrefix,
+        })
+
+        assert.isEqualDeep(
+            this.callsToDiscoverBluetooth[0],
+            [this.bluetoothNamePrefix],
+            'discoverBluetoothAddresses did not call binding with expected args!'
+        )
+    }
+
+    @test()
+    protected static async discoverBluetoothAddressesReturnsAddressesFromBinding() {
+        this.fakeDiscoverBluetoothResult = {
+            status: 200,
+            addresses: ['a0-e6-f8-a5-60-bf', 'a0-e6-f8-a5-69-9a'],
+        }
+
+        assert.isEqualDeep(
+            this.instance.discoverBluetoothAddresses({
+                namePrefix: this.bluetoothNamePrefix,
+            }),
+            {
+                status: 200,
+                addresses: ['a0-e6-f8-a5-60-bf', 'a0-e6-f8-a5-69-9a'],
+            },
+            'discoverBluetoothAddresses did not return addresses from binding!'
+        )
+    }
+
+    @test()
+    protected static async discoverBluetoothAddressesReturnsErrorFromBinding() {
+        this.fakeDiscoverBluetoothResult = { status: 500, error: 'powered off' }
+
+        const { status, error } = this.instance.discoverBluetoothAddresses({
+            namePrefix: this.bluetoothNamePrefix,
+        })
+
+        assert.isEqualDeep(
+            { status, error },
+            { status: 500, error: 'powered off' },
+            'discoverBluetoothAddresses did not return error from binding!'
+        )
+    }
+
+    @test()
+    protected static async createBluetoothBackendCallsBindingWithExpectedArgs() {
+        this.createBluetoothBackend()
+
+        assert.isEqualDeep(
+            JSON.parse(this.callsToCreateBluetooth[0][0]),
+            { address: this.bluetoothAddress },
+            'createBluetoothBackend did not call binding with expected args!'
+        )
+    }
+
+    @test()
+    protected static async createBluetoothBackendPassesPort() {
+        this.instance.createBluetoothBackend({
+            address: this.bluetoothAddress,
+            port: 3,
+        })
+
+        assert.isEqualDeep(
+            JSON.parse(this.callsToCreateBluetooth[0][0]),
+            { address: this.bluetoothAddress, port: 3 },
+            'createBluetoothBackend did not pass port!'
+        )
+    }
+
+    @test()
+    protected static async createBluetoothBackendReturnsJson() {
+        assert.isEqualDeep(
+            this.createBluetoothBackend(),
+            this.successfulResult,
+            'createBluetoothBackend did not return a JSON string!'
+        )
+    }
+
+    @test()
+    protected static async startBluetoothBackendCallsBindingWithExpectedArgs() {
+        this.startBluetoothBackend()
+
+        assert.isEqual(
+            this.callsToStartBluetooth[0][0],
+            this.bluetoothAddress,
+            'startBluetoothBackend did not call binding with expected args!'
+        )
+    }
+
+    @test()
+    protected static async startBluetoothBackendDecodesRawPointerBeforeInvokingOnData() {
+        this.startBluetoothBackend()
+
+        const registeredOnData = this
+            .callsToStartBluetooth[0][1] as unknown as OnDataCallback
+
+        const fakePointer = 49611948672n
+        registeredOnData(fakePointer, 3, 123.456)
+
+        assert.isEqualDeep(
+            {
+                decodeCall: this.koffiDecodeCalls![0],
+                receivedData: this.receivedUsbData,
+                receivedLength: this.receivedUsbLength,
+                receivedTimestamp: this.receivedTimestampSec,
+            },
+            {
+                decodeCall: [fakePointer, 'uint8_t', 3],
+                receivedData: Buffer.from(this.fakeDecodedData!),
+                receivedLength: 3,
+                receivedTimestamp: 123.456,
+            },
+            'onData was not invoked with the decoded Buffer, length, and timestampSec!'
+        )
+    }
+
+    @test()
+    protected static async startBluetoothBackendRetainsOnDataCallbackToPreventGc() {
+        this.startBluetoothBackend()
+
+        const registeredOnData = this.callsToStartBluetooth[0][1]
+
+        assert.isTrue(
+            this.instance.getRegisteredCallbacks().includes(registeredOnData),
+            'startBluetoothBackend did not retain the registered onData callback!'
+        )
+    }
+
+    @test()
+    protected static async startBluetoothBackendReturnsJson() {
+        assert.isEqualDeep(
+            this.startBluetoothBackend(),
+            this.successfulResult,
+            'startBluetoothBackend did not return a JSON string!'
+        )
+    }
+
+    @test()
+    protected static async writeBluetoothBackendPassesBytesAndLengthToBinding() {
+        this.writeBluetoothBackend()
+
+        assert.isEqualDeep(
+            this.callsToWriteBluetooth[0],
+            [
+                this.bluetoothAddress,
+                this.bluetoothDataToWrite,
+                this.bluetoothDataToWrite.length,
+            ],
+            'writeBluetoothBackend did not call binding with expected args!'
+        )
+    }
+
+    @test()
+    protected static async writeBluetoothBackendReturnsJson() {
+        assert.isEqualDeep(
+            this.writeBluetoothBackend(),
+            this.successfulResult,
+            'writeBluetoothBackend did not return a JSON string!'
+        )
+    }
+
+    @test()
+    protected static async stopBluetoothBackendCallsBindingWithExpectedArgs() {
+        this.stopBluetoothBackend()
+
+        assert.isEqualDeep(
+            this.callsToStopBluetooth[0],
+            [this.bluetoothAddress],
+            'stopBluetoothBackend did not call binding with expected args!'
+        )
+    }
+
+    @test()
+    protected static async startBluetoothBackendPumpsBluetoothEventsEveryTenMs() {
+        this.startBluetoothBackend()
+
+        const { callback, ms } = this.callsToSetInterval[0] ?? {}
+        callback?.()
+
+        assert.isEqualDeep(
+            { ms, numCallsToPump: this.numCallsToPumpBluetoothEvents },
+            { ms: 10, numCallsToPump: 1 },
+            'Did not pump bluetooth events every 10ms! IOBluetooth only delivers incoming data on the main run loop, which node never runs.'
+        )
+    }
+
+    @test()
+    protected static async pumpsOnceForSeveralBluetoothBackends() {
+        this.startBluetoothBackend()
+        this.instance.startBluetoothBackend({
+            address: this.generateId(),
+            onData: this.usbOnDataCallback,
+        })
+
+        assert.isLength(
+            this.callsToSetInterval,
+            1,
+            'Should pump bluetooth events only once for several backends!'
+        )
+    }
+
+    @test()
+    protected static async doesNotPumpWhenBluetoothBackendFailsToStart() {
+        this.fakeStartBluetoothResult = { status: 500, error: 'timeout' }
+
+        this.startBluetoothBackend()
+
+        assert.isLength(
+            this.callsToSetInterval,
+            0,
+            'Should not pump bluetooth events for a backend that failed to start!'
+        )
+    }
+
+    @test()
+    protected static async stopsPumpingOnceLastBluetoothBackendStops() {
+        const otherAddress = this.generateId()
+
+        this.startBluetoothBackend()
+        this.instance.startBluetoothBackend({
+            address: otherAddress,
+            onData: this.usbOnDataCallback,
+        })
+
+        this.stopBluetoothBackend()
+        const numClearsWhileOneRuns = this.callsToClearInterval.length
+
+        this.instance.stopBluetoothBackend({ address: otherAddress })
+
+        assert.isEqualDeep(
+            {
+                numClearsWhileOneRuns,
+                cleared: this.callsToClearInterval,
+            },
+            { numClearsWhileOneRuns: 0, cleared: [this.fakeInterval] },
+            'Did not stop pumping once the last bluetooth backend stopped!'
+        )
+    }
+
+    @test()
+    protected static async stopBluetoothBackendReturnsJson() {
+        assert.isEqualDeep(
+            this.stopBluetoothBackend(),
+            this.successfulResult,
+            'stopBluetoothBackend did not return a JSON string!'
+        )
+    }
+
     private static nativeOnScanned(call: number) {
         return this.callsToStartBleScan[call]?.onScanned as (
             uuid: string,
@@ -1173,6 +1463,32 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         })
     }
 
+    private static createBluetoothBackend() {
+        return this.instance.createBluetoothBackend({
+            address: this.bluetoothAddress,
+        })
+    }
+
+    private static startBluetoothBackend() {
+        return this.instance.startBluetoothBackend({
+            address: this.bluetoothAddress,
+            onData: this.usbOnDataCallback,
+        })
+    }
+
+    private static writeBluetoothBackend() {
+        return this.instance.writeBluetoothBackend({
+            address: this.bluetoothAddress,
+            data: this.bluetoothDataToWrite,
+        })
+    }
+
+    private static stopBluetoothBackend() {
+        return this.instance.stopBluetoothBackend({
+            address: this.bluetoothAddress,
+        })
+    }
+
     private static FakeBindings(): LibndxBindings {
         return {
             discover_ble_uuid: (args: any) => {
@@ -1266,6 +1582,30 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
                 this.callsToStopUsb.push(args)
                 return JSON.stringify(this.successfulResult)
             },
+            discover_bluetooth_addresses: (args) => {
+                this.callsToDiscoverBluetooth.push(args)
+                return JSON.stringify(this.fakeDiscoverBluetoothResult)
+            },
+            create_bluetooth_backend: (args) => {
+                this.callsToCreateBluetooth.push(args)
+                return JSON.stringify(this.successfulResult)
+            },
+            start_bluetooth_backend: (args: any) => {
+                this.callsToStartBluetooth.push(args)
+                return JSON.stringify(this.fakeStartBluetoothResult)
+            },
+            write_bluetooth_backend: (args) => {
+                this.callsToWriteBluetooth.push(args)
+                return JSON.stringify(this.successfulResult)
+            },
+            stop_bluetooth_backend: (args) => {
+                this.callsToStopBluetooth.push(args)
+                return JSON.stringify(this.successfulResult)
+            },
+            pump_bluetooth_events: () => {
+                this.numCallsToPumpBluetoothEvents++
+                return JSON.stringify(this.successfulResult)
+            },
         }
     }
 
@@ -1286,6 +1626,27 @@ export default class LibndxAdapterTest extends AbstractPackageTest {
         this.callsToStartUsb.length = 0
         this.callsToWriteUsb.length = 0
         this.callsToStopUsb.length = 0
+        this.callsToDiscoverBluetooth.length = 0
+        this.callsToCreateBluetooth.length = 0
+        this.callsToStartBluetooth.length = 0
+        this.callsToWriteBluetooth.length = 0
+        this.callsToStopBluetooth.length = 0
+        this.numCallsToPumpBluetoothEvents = 0
+        this.fakeStartBluetoothResult = { status: 200 }
+    }
+
+    private static setFakeIntervals() {
+        this.callsToSetInterval.length = 0
+        this.callsToClearInterval.length = 0
+
+        LibndxAdapter.setInterval = ((callback: () => void, ms?: number) => {
+            this.callsToSetInterval.push({ callback, ms })
+            return this.fakeInterval
+        }) as unknown as typeof setInterval
+
+        LibndxAdapter.clearInterval = ((interval: unknown) => {
+            this.callsToClearInterval.push(interval)
+        }) as typeof clearInterval
     }
 
     private static clearAndFakeFfi() {

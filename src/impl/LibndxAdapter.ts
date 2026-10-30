@@ -8,6 +8,8 @@ export default class LibndxAdapter implements Libndx {
     public static koffiProto = koffi.proto.bind(koffi)
     public static koffiPointer: typeof koffi.pointer = koffi.pointer.bind(koffi)
     public static koffiDecode: typeof koffi.decode = koffi.decode.bind(koffi)
+    public static setInterval = setInterval
+    public static clearInterval = clearInterval
 
     private static charCallbackProto?: ReturnType<typeof koffi.proto>
     private static charCallbackStruct?: ReturnType<typeof koffi.struct>
@@ -30,6 +32,10 @@ export default class LibndxAdapter implements Libndx {
         string,
         RegisteredCallbackPointer
     >()
+
+    private readonly runningBluetoothAddresses = new Set<string>()
+    private readonly bluetoothEventPumpMs = 10
+    private bluetoothEventPump?: ReturnType<typeof setInterval>
 
     private libndxPath: string
     private bindings!: LibndxBindings
@@ -128,6 +134,11 @@ export default class LibndxAdapter implements Libndx {
             (args: [string, number, RegisteredCallbackPointer]) =>
                 f(args[0], args[1], args[2])
 
+        const wrapWriteBluetoothBackend =
+            (f: (a: string, b: Buffer, c: number) => string) =>
+            (args: [string, Buffer, number]) =>
+                f(args[0], args[1], args[2])
+
         const wrapStrAndCallback =
             (f: (a: string, b: RegisteredCallbackPointer) => string) =>
             (args: [string, RegisteredCallbackPointer]) =>
@@ -201,6 +212,28 @@ export default class LibndxAdapter implements Libndx {
             ),
             stop_usb_backend: wrap1(
                 lib.func('str stop_usb_backend(str serial)')
+            ),
+            discover_bluetooth_addresses: wrap1(
+                lib.func('str discover_bluetooth_addresses(str name_prefix)')
+            ),
+            create_bluetooth_backend: wrap1(
+                lib.func('str create_bluetooth_backend(str config)')
+            ),
+            start_bluetooth_backend: wrapStrAndCallback(
+                lib.func(
+                    'str start_bluetooth_backend(str address, OnDataFn *on_data)'
+                )
+            ),
+            write_bluetooth_backend: wrapWriteBluetoothBackend(
+                lib.func(
+                    'str write_bluetooth_backend(str address, const uint8 *data, uint64 length)'
+                )
+            ),
+            stop_bluetooth_backend: wrap1(
+                lib.func('str stop_bluetooth_backend(str address)')
+            ),
+            pump_bluetooth_events: wrap0(
+                lib.func('str pump_bluetooth_events()')
             ),
         }
     }
@@ -500,6 +533,86 @@ export default class LibndxAdapter implements Libndx {
         return JSON.parse(this.bindings.stop_usb_backend([serialNumber]))
     }
 
+    public discoverBluetoothAddresses(
+        options: DiscoverBluetoothAddressesOptions
+    ) {
+        const { namePrefix } = options
+
+        return JSON.parse(
+            this.bindings.discover_bluetooth_addresses([namePrefix])
+        )
+    }
+
+    public createBluetoothBackend(options: BluetoothOptions) {
+        const { address, port } = options
+
+        const configJson = JSON.stringify({ address, port })
+
+        return JSON.parse(this.bindings.create_bluetooth_backend([configJson]))
+    }
+
+    public startBluetoothBackend(options: StartBluetoothOptions) {
+        const { address, onData } = options
+
+        const registeredOnData = LibndxAdapter.registerOnData(
+            onData,
+            LibndxAdapter.getOnDataProto()!
+        )
+
+        this.registeredCallbacks.push(registeredOnData)
+
+        const result = JSON.parse(
+            this.bindings.start_bluetooth_backend([address, registeredOnData])
+        )
+
+        if (result.status === 200) {
+            this.runningBluetoothAddresses.add(address)
+            this.startPumpingBluetoothEvents()
+        }
+
+        return result
+    }
+
+    private startPumpingBluetoothEvents() {
+        this.bluetoothEventPump ??= LibndxAdapter.setInterval(
+            () => this.bindings.pump_bluetooth_events(),
+            this.bluetoothEventPumpMs
+        )
+    }
+
+    public writeBluetoothBackend(options: WriteBluetoothOptions) {
+        const { address, data } = options
+
+        return JSON.parse(
+            this.bindings.write_bluetooth_backend([address, data, data.length])
+        )
+    }
+
+    public stopBluetoothBackend(options: BluetoothOptions) {
+        const { address } = options
+
+        const result = JSON.parse(
+            this.bindings.stop_bluetooth_backend([address])
+        )
+
+        this.runningBluetoothAddresses.delete(address)
+        this.stopPumpingBluetoothEventsIfIdle()
+
+        return result
+    }
+
+    private stopPumpingBluetoothEventsIfIdle() {
+        if (
+            this.runningBluetoothAddresses.size > 0 ||
+            !this.bluetoothEventPump
+        ) {
+            return
+        }
+
+        LibndxAdapter.clearInterval(this.bluetoothEventPump)
+        delete this.bluetoothEventPump
+    }
+
     private static registerOnAdvertisement(
         onAdvertisement: OnAdvertisementCallback,
         proto: ReturnType<typeof koffi.proto>
@@ -650,6 +763,14 @@ export interface Libndx {
     startUsbBackend(options: StartUsbOptions): NativeResult
     writeUsbBackend(options: WriteUsbOptions): NativeResult
     stopUsbBackend(options: UsbOptions): NativeResult
+
+    discoverBluetoothAddresses(
+        options: DiscoverBluetoothAddressesOptions
+    ): NativeResult & { addresses?: string[] }
+    createBluetoothBackend(options: BluetoothOptions): NativeResult
+    startBluetoothBackend(options: StartBluetoothOptions): NativeResult
+    writeBluetoothBackend(options: WriteBluetoothOptions): NativeResult
+    stopBluetoothBackend(options: BluetoothOptions): NativeResult
 }
 
 export type LibndxConstructor = new (options?: LibndxAdapterOptions) => Libndx
@@ -755,6 +876,23 @@ export interface WriteUsbOptions extends UsbOptions {
     value: string
 }
 
+export interface DiscoverBluetoothAddressesOptions {
+    namePrefix: string
+}
+
+export interface BluetoothOptions {
+    address: string
+    port?: number
+}
+
+export interface StartBluetoothOptions extends BluetoothOptions {
+    onData: OnDataCallback
+}
+
+export interface WriteBluetoothOptions extends BluetoothOptions {
+    data: Buffer
+}
+
 export type StartBleGattArgs = [
     uuid: string,
     onConnected: RegisteredCallbackPointer,
@@ -793,6 +931,13 @@ export interface LibndxBindings {
     start_usb_backend(args: [string, RegisteredCallbackPointer]): string
     write_usb_backend(args: [string, string]): string
     stop_usb_backend(args: [string]): string
+
+    discover_bluetooth_addresses(args: [string]): string
+    create_bluetooth_backend(args: [string]): string
+    start_bluetooth_backend(args: [string, RegisteredCallbackPointer]): string
+    write_bluetooth_backend(args: [string, Buffer, number]): string
+    stop_bluetooth_backend(args: [string]): string
+    pump_bluetooth_events(): string
 }
 
 export interface NativePeripheral {
